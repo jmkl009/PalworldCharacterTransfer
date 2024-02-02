@@ -8,6 +8,7 @@ from lib.noindent import CustomEncoder
 from lib.palsav import compress_gvas_to_sav, decompress_sav_to_gvas
 from lib.paltypes import PALWORLD_CUSTOM_PROPERTIES, PALWORLD_TYPE_HINTS
 
+
 ### Credit for this file and all those within "lib" belong to "cheahjs" on Github
 ### https://github.com/cheahjs/palworld-save-tools
 
@@ -82,6 +83,12 @@ def convert_sav_to_json(filename, output_path, minify):
         json.dump(gvas_file.dump(), f, indent=indent, cls=CustomEncoder)
 
 
+def write_json(json_data, output_path, minify):
+    with open(output_path, "w", encoding="utf8") as f:
+        indent = None if minify else "\t"
+        json.dump(json_data, f, indent=indent, cls=CustomEncoder)
+
+
 def convert_sav_to_json_data(filename, output_path, minify):
     print(f"Converting {filename} to JSON, saving to {output_path}")
     if os.path.exists(output_path):
@@ -110,8 +117,8 @@ def convert_json_to_sav(filename, output_path):
     gvas_file = GvasFile.load(data)
     print(f"Compressing SAV file")
     if (
-        "Pal.PalWorldSaveGame" in gvas_file.header.save_game_class_name
-        or "Pal.PalLocalWorldSaveGame" in gvas_file.header.save_game_class_name
+            "Pal.PalWorldSaveGame" in gvas_file.header.save_game_class_name
+            or "Pal.PalLocalWorldSaveGame" in gvas_file.header.save_game_class_name
     ):
         save_type = 0x32
     else:
@@ -129,8 +136,8 @@ def convert_json_data_to_sav(json_data, output_path):
     gvas_file = GvasFile.load(data)
     print(f"Compressing SAV file")
     if (
-        "Pal.PalWorldSaveGame" in gvas_file.header.save_game_class_name
-        or "Pal.PalLocalWorldSaveGame" in gvas_file.header.save_game_class_name
+            "Pal.PalWorldSaveGame" in gvas_file.header.save_game_class_name
+            or "Pal.PalLocalWorldSaveGame" in gvas_file.header.save_game_class_name
     ):
         save_type = 0x32
     else:
