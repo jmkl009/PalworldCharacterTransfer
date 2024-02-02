@@ -1,6 +1,7 @@
-# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/
+# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://github.com/EternalWraith/PalEdit
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
-# There is still the bug that the pal you caught from the old world is attackable and can damage you with skills, and even antagnoizes you if you throw a sphere at them. The solution to that is simply dropping the pals down and picking them back up again.
+# I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
+# Other fixes include prevention of duplicate and missing pals.
 import copy
 import json
 import os
@@ -421,11 +422,13 @@ def source_player_file():
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
             host_sav_path = None
+            source_player_path_label.config(text="...")
             return
         host_json = load_file(host_sav_path)
         if not host_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
             host_sav_path = None
+            source_player_path_label.config(text="...")
             return
         source_player_path_label.config(text=host_sav_path)
         host_sav_path = host_sav_path[:-5] if host_sav_path.endswith('.json') else host_sav_path
@@ -442,11 +445,13 @@ def source_level_file():
         if not level_sav_path.endswith('Level.sav') and not level_sav_path.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
             level_sav_path = None
+            source_level_path_label.config(text="...")
             return
         level_json = load_file(level_sav_path)
         if not level_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
             level_sav_path = None
+            source_level_path_label.config(text="...")
             return
         source_level_path_label.config(text=level_sav_path)
         level_sav_path = level_sav_path[:-5] if level_sav_path.endswith('.json') else level_sav_path
@@ -464,11 +469,13 @@ def target_player_file():
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
             t_host_sav_path = None
+            target_player_path_label.config(text="...")
             return
         targ_json = load_file(t_host_sav_path)
         if not targ_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
             t_host_sav_path = None
+            target_player_path_label.config(text="...")
             return
         target_player_path_label.config(text=t_host_sav_path)
         t_host_sav_path = t_host_sav_path[:-5] if t_host_sav_path.endswith('.json') else t_host_sav_path
@@ -485,11 +492,13 @@ def target_level_file():
         if not t_level_sav_path.endswith('Level.sav') and not t_level_sav_path.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
             target_level_path_label = None
+            target_level_path_label.config(text="...")
             return
         targ_lvl = load_file(t_level_sav_path)
         if not targ_lvl:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
             t_level_sav_path = None
+            target_level_path_label.config(text="...")
             return
         target_level_path_label.config(text=t_level_sav_path)
         t_level_sav_path = t_level_sav_path[:-5] if t_level_sav_path.endswith('.json') else t_level_sav_path
