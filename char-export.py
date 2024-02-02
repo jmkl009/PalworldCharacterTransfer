@@ -1,7 +1,6 @@
-# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://github.com/EternalWraith/PalEdit
+# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
-# I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
-# Other fixes include prevention of duplicate and missing pals.
+# There is still the bug that the pal you caught from the old world is attackable and can damage you with skills, and even antagnoizes you if you throw a sphere at them. The solution to that is simply dropping the pals down and picking them back up again.
 import json
 import os
 import SaveConverter
@@ -10,13 +9,30 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
 
+reload_source_player = False
+reload_source_level = False
+reload_target_player = False
+reload_target_level = False
+
 def main():
-    global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
+    global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl, reload_source_player, reload_source_level, reload_target_player, reload_target_level
     
     if None in [host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path]:
         messagebox.showerror(message='Please have all files selected before starting transfer.')
         return
     print(host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path)
+    if reload_source_player:
+        with open(host_sav_path, 'r', encoding='utf-8') as f:
+            host_json = json.load(f)
+    if reload_source_level:
+        with open(level_sav_path, 'r', encoding='utf-8') as f:
+            level_json = json.load(f)
+    if reload_target_player:
+        with open(t_host_sav_path, 'r', encoding='utf-8') as f:
+            targ_json = json.load(f)
+    if reload_target_level:
+        with open(t_level_sav_path, 'r', encoding='utf-8') as f:
+            targ_lvl = json.load(f)
 
     # Warn the user about potential data loss.
     response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your save files and could \
@@ -353,6 +369,11 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     json_to_sav(t_level_sav_path, targ_lvl)
     json_to_sav(t_host_sav_path, targ_json)
 
+    reload_source_player = True
+    reload_source_level = True
+    reload_target_player = True
+    reload_target_level = True
+
     print("Saved all data successfully. PLEASE DON'T BREAK")
     messagebox.showinfo(message='Transfer finished! You may continue transferring more players or close the windows now.')
 
@@ -395,7 +416,7 @@ def load_file(path):
 
 
 def source_player_file():
-    global host_sav_path, source_player_path_label, host_json
+    global host_sav_path, source_player_path_label, host_json, reload_source_player
     cleanup_path = None
     if host_sav_path:
         cleanup_path = host_sav_path
@@ -416,9 +437,10 @@ def source_player_file():
             return
         source_player_path_label.config(text=host_sav_path)
         host_sav_path = host_sav_path[:-5] if host_sav_path.endswith('.json') else host_sav_path
+        reload_source_player = False
 
 def source_level_file():
-    global level_sav_path, source_level_path_label, level_json
+    global level_sav_path, source_level_path_label, level_json, reload_source_level
     cleanup_path = None
     if level_sav_path:
         cleanup_path = level_sav_path
@@ -437,9 +459,10 @@ def source_level_file():
             return
         source_level_path_label.config(text=level_sav_path)
         level_sav_path = level_sav_path[:-5] if level_sav_path.endswith('.json') else level_sav_path
+        reload_source_level = False
 
 def target_player_file():
-    global t_host_sav_path, target_player_path_label, targ_json
+    global t_host_sav_path, target_player_path_label, targ_json, reload_target_player
     cleanup_path = None
     if t_host_sav_path:
         cleanup_path = t_host_sav_path
@@ -459,9 +482,10 @@ def target_player_file():
             return
         target_player_path_label.config(text=t_host_sav_path)
         t_host_sav_path = t_host_sav_path[:-5] if t_host_sav_path.endswith('.json') else t_host_sav_path
+        reload_target_player = False
 
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl
+    global t_level_sav_path, target_level_path_label, targ_lvl, reload_target_level
     cleanup_path = None
     if t_level_sav_path:
         cleanup_path = t_level_sav_path
@@ -480,6 +504,7 @@ def target_level_file():
             return
         target_level_path_label.config(text=t_level_sav_path)
         t_level_sav_path = t_level_sav_path[:-5] if t_level_sav_path.endswith('.json') else t_level_sav_path
+        reload_target_level = False
 
 def on_exit():
     global level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path
