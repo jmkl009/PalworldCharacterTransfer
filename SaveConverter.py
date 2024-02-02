@@ -93,11 +93,11 @@ def convert_sav_to_json_data(filename, output_path, minify):
     print(f"Loading GVAS file")
     gvas_file = GvasFile.read(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
     print(f"Writing JSON to {output_path}")
-    json_data = gvas_file.dump()
     with open(output_path, "w", encoding="utf8") as f:
         indent = None if minify else "\t"
-        json.dump(json_data, f, indent=indent, cls=CustomEncoder)
-    return json_data
+        json.dump(gvas_file.dump(), f, indent=indent, cls=CustomEncoder)
+    with open(output_path, "r", encoding="utf8") as f:
+        return json.load(f)
 
 
 def convert_json_to_sav(filename, output_path):

@@ -1,6 +1,7 @@
-# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/
+# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://github.com/EternalWraith/PalEdit
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
-# There is still the bug that the pal you caught from the old world is attackable and can damage you with skills, and even antagnoizes you if you throw a sphere at them. The solution to that is simply dropping the pals down and picking them back up again.
+# I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
+# Other fixes include prevention of duplicate and missing pals.
 import json
 import os
 import SaveConverter
@@ -233,12 +234,12 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     inv_weps = inv_info["value"]["WeaponLoadOutContainerId"]
     inv_armor = inv_info["value"]["PlayerEquipArmorContainerId"]
     inv_foodbag = inv_info["value"]["FoodEquipContainerId"]
-    
+
     host_inv_pals = inv_pals
     host_inv_otomo = inv_otomo
     inv_pals = targ_json["properties"]["SaveData"]["value"]["PalStorageContainerId"]
     inv_otomo = targ_json["properties"]["SaveData"]["value"]["OtomoCharacterContainerId"]
-    
+
     group_id = None
     targ_uid = targ_json["properties"]["SaveData"]["value"]["IndividualId"]["value"]["PlayerUId"]["value"]
     for group_data in targ_lvl["properties"]["worldSaveData"]["value"]["GroupSaveDataMap"]["value"]:
@@ -353,6 +354,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     json_to_sav(t_host_sav_path, targ_json)
 
     print("Saved all data successfully. PLEASE DON'T BREAK")
+    messagebox.showinfo(message='Transfer finished! You may continue transferring more players or close the windows now.')
 
 def sav_to_json(file):
     return SaveConverter.convert_sav_to_json_data(file, file.replace(".sav", ".sav.json"), False)
@@ -385,12 +387,12 @@ def load_file(path):
     if path.endswith(".sav.json"):
         status_label.config(text="Now loading the file...")
         root.update_idletasks()
-        with open(path) as f:
+        with open(path, "r", encoding="utf8") as f:
             loaded_file = json.load(f)
     status_label.config(text="Select files to transfer")
     return loaded_file
-    
-        
+
+
 
 def source_player_file():
     global host_sav_path, source_player_path_label, host_json
