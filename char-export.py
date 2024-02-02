@@ -10,8 +10,8 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
 
-host_sav_path_cache = None
-level_sav_path_cache = None
+host_json_cache = None
+level_json_cache = None
 
 def main():
     global host_sav_path, host_sav_path_cache, level_sav_path, level_sav_path_cache, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
@@ -20,8 +20,8 @@ def main():
         messagebox.showerror(message='Please have all files selected before starting transfer.')
         return
     print(host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path)
-    host_sav_path_cache = copy.deepcopy(host_sav_path)
-    level_sav_path_cache = copy.deepcopy(level_sav_path)
+    host_json_cache = copy.deepcopy(host_json)
+    level_json_cache = copy.deepcopy(level_json)
 
     # Warn the user about potential data loss.
     response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your save files and could \
@@ -362,8 +362,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     json_to_sav(t_level_sav_path, targ_lvl)
     json_to_sav(t_host_sav_path, targ_json)
 
-    host_sav_path = host_sav_path_cache
-    level_sav_path = level_sav_path_cache
+    host_json = host_json_cache
+    level_json = level_json_cache
 
     print("Saved all data successfully. PLEASE DON'T BREAK")
     messagebox.showinfo(message='Transfer finished! You may continue transferring more players or close the windows now.')
