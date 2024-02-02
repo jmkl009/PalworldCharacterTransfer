@@ -1,4 +1,4 @@
-# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://github.com/EternalWraith/PalEdit
+# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://rithub.com/EternalWraith/PalEdit
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
 # I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
 # Other fixes include prevention of duplicate and missing pals.
@@ -13,9 +13,11 @@ from tkinter import messagebox
 
 host_json_cache = None
 level_json_cache = None
+target_json_cache = None
+target_level_cache = None
 
 def main():
-    global host_sav_path, host_sav_path_cache, level_sav_path, level_sav_path_cache, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
+    global host_sav_path, host_sav_path_cache, level_sav_path, level_sav_path_cache, t_level_sav_path, target_json_cache, t_host_sav_path, target_level_cache, host_json, level_json, targ_json, targ_lvl
     
     if None in [host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path]:
         messagebox.showerror(message='Please have all files selected before starting transfer.')
@@ -23,6 +25,10 @@ def main():
     print(host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path)
     host_json_cache = copy.deepcopy(host_json)
     level_json_cache = copy.deepcopy(level_json)
+    if target_json_cache:
+        targ_json = target_json_cache
+    if target_level_cache:
+        targ_lvl = target_level_cache
 
     # Warn the user about potential data loss.
     response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your save files and could \
@@ -360,6 +366,9 @@ of your save folder before continuing. Press Yes if you would like to continue.'
                     break
     targ_lvl['properties']['worldSaveData']['value']['DynamicItemSaveData']['value']['values'] += [container for i, container in enumerate(level_additional_dynamic_containers) if i not in repeated_indices]
 
+    target_json_cache = copy.deepcopy(targ_json)
+    target_level_cache = copy.deepcopy(targ_lvl)
+
     json_to_sav(t_level_sav_path, targ_lvl)
     json_to_sav(t_host_sav_path, targ_json)
 
@@ -457,7 +466,7 @@ def source_level_file():
         level_sav_path = level_sav_path[:-5] if level_sav_path.endswith('.json') else level_sav_path
 
 def target_player_file():
-    global t_host_sav_path, target_player_path_label, targ_json
+    global t_host_sav_path, target_player_path_label, targ_json, target_json_cache
     cleanup_path = None
     if t_host_sav_path:
         cleanup_path = t_host_sav_path
@@ -479,9 +488,10 @@ def target_player_file():
             return
         target_player_path_label.config(text=t_host_sav_path)
         t_host_sav_path = t_host_sav_path[:-5] if t_host_sav_path.endswith('.json') else t_host_sav_path
+        target_json_cache = None
 
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl
+    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache
     cleanup_path = None
     if t_level_sav_path:
         cleanup_path = t_level_sav_path
@@ -502,6 +512,7 @@ def target_level_file():
             return
         target_level_path_label.config(text=t_level_sav_path)
         t_level_sav_path = t_level_sav_path[:-5] if t_level_sav_path.endswith('.json') else t_level_sav_path
+        target_level_cache = None
 
 def on_exit():
     global level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path

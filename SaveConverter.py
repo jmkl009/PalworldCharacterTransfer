@@ -131,8 +131,7 @@ def convert_json_to_sav(filename, output_path):
         f.write(sav_file)
 
 
-def convert_json_data_to_sav(json_data, output_path):
-    data = json_data
+def convert_json_data_to_sav(data, output_path):
     gvas_file = GvasFile.load(data)
     print(f"Compressing SAV file")
     if (
