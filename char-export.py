@@ -1,7 +1,7 @@
 # Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://rithub.com/EternalWraith/PalEdit
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
 # I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
-# Other fixes include prevention of duplicate and missing pals.
+# Other fixes include prevention of duplicate and missing pals, etc.
 import copy
 import json
 import os
@@ -11,24 +11,12 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
 
-host_json_cache = None
-level_json_cache = None
-target_json_cache = None
-target_level_cache = None
-
 def main():
-    global host_sav_path, host_sav_path_cache, level_sav_path, level_sav_path_cache, t_level_sav_path, target_json_cache, t_host_sav_path, target_level_cache, host_json, level_json, targ_json, targ_lvl
+    global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
     
     if None in [host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path]:
         messagebox.showerror(message='Please have all files selected before starting transfer.')
         return
-    print(host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path)
-    host_json_cache = copy.deepcopy(host_json)
-    level_json_cache = copy.deepcopy(level_json)
-    if target_json_cache:
-        targ_json = target_json_cache
-    if target_level_cache:
-        targ_lvl = target_level_cache
 
     # Warn the user about potential data loss.
     response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your save files and could \
@@ -36,6 +24,9 @@ potentially corrupt your data. It is HIGHLY recommended that you make a backup \
 of your save folder before continuing. Press Yes if you would like to continue.')
     if not response:
         return
+
+    host_json_cache = copy.deepcopy(host_json)
+    level_json_cache = copy.deepcopy(level_json)
 
 
     host_guid = os.path.basename(host_sav_path).split('.')[0]
@@ -69,7 +60,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             count = count + 1
             found = 1
         elif level_json["properties"]["worldSaveData"]["value"]["CharacterSaveParameterMap"]["value"][i]["key"]["PlayerUId"]["value"] == host_guid_formatted or (
-            level_json["properties"]["worldSaveData"]["value"]["CharacterSaveParameterMap"]["value"][i]["key"]["PlayerUId"]["value"] == "00000000-0000-0000-0000-000000000000" and 
+            level_json["properties"]["worldSaveData"]["value"]["CharacterSaveParameterMap"]["value"][i]["key"]["PlayerUId"]["value"] in ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001"] and
             level_json["properties"]["worldSaveData"]["value"]["CharacterSaveParameterMap"]["value"][i]['value']['RawData']['value']['object']['SaveParameter']['value'].get('OwnerPlayerUId', {'value':''})['value'] == host_guid_formatted):
             param_maps.append(level_json["properties"]["worldSaveData"]["value"]["CharacterSaveParameterMap"]["value"][i])
             palcount += 1
@@ -283,6 +274,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             pal_content['OldOwnerPlayerUIds']['value']['values'] = [targ_uid]
         pal_param['value']['RawData']['value']['group_id'] = group_id
         print(pal_param["key"]["PlayerUId"]["value"], pal_param["value"]['RawData']['value']['object']['SaveParameter']['value']['CharacterID'])
+        pal_param["key"]["PlayerUId"]["value"] = "00000000-0000-0000-0000-000000000001"
         if pal_param["key"]["InstanceId"]["value"] not in guild_item_insatnce_ids:
             guild_items_json.append({"guid": "00000000-0000-0000-0000-000000000001", "instance_id": pal_param["key"]["InstanceId"]["value"]})
         #pal_param["key"]["PlayerUId"]["value"] = targ_uid
@@ -308,6 +300,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             print("Doing it the hard way...")
             pal_length = len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"])
             for j in range(pal_length):
+                host_pals["value"]["Slots"]["value"]["values"][j]["RawData"]['value']['values'][12] = 1 # Matching the byte array entry to 000000..001, the new key of the pals
                 targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"][j]["RawData"] = host_pals["value"]["Slots"]["value"]["values"][j]["RawData"]
 
             #targ_lvl["root"]["properties"]["worldSaveData"]["Struct"]["value"]["Struct"]["CharacterContainerSaveData"]["Map"]["value"][i]["value"] = host_pals["value"]
@@ -318,6 +311,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             print("Doing it the hard way...")
             pal_length = len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"])
             for j in range(pal_length):
+                host_otomo["value"]["Slots"]["value"]["values"][j]["RawData"]['value']['values'][12] = 1 # Matching the byte array entry to 000000..001, the new key of the pals
                 targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"][j]["RawData"] = host_otomo["value"]["Slots"]["value"]["values"][j]["RawData"]
                 print("Writing otomo slot no. " + str(j))
             count = count + 1
@@ -366,11 +360,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
                     break
     targ_lvl['properties']['worldSaveData']['value']['DynamicItemSaveData']['value']['values'] += [container for i, container in enumerate(level_additional_dynamic_containers) if i not in repeated_indices]
 
-    target_json_cache = copy.deepcopy(targ_json)
-    target_level_cache = copy.deepcopy(targ_lvl)
-
-    json_to_sav(t_level_sav_path, targ_lvl)
-    json_to_sav(t_host_sav_path, targ_json)
+    json_to_sav(t_level_sav_path, copy.deepcopy(targ_lvl))
+    json_to_sav(t_host_sav_path, copy.deepcopy(targ_json))
 
     host_json = host_json_cache
     level_json = level_json_cache
@@ -379,7 +370,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     messagebox.showinfo(message='Transfer finished! You may continue transferring more players or close the windows now.')
 
 def sav_to_json(file):
-    return SaveConverter.convert_sav_to_json_data(file, file.replace(".sav", ".sav.json"), True)
+    return SaveConverter.convert_sav_to_json_data(file, file.replace(".sav", ".sav.json"), False)
 
 def json_to_sav(file, json_data):
     SaveConverter.convert_json_data_to_sav(json_data, file)
@@ -422,97 +413,80 @@ def source_player_file():
     cleanup_path = None
     if host_sav_path:
         cleanup_path = host_sav_path
-    host_sav_path = select_file()
-    if host_sav_path:  # If a file was selected, update the label
-        print(host_sav_path, cleanup_path)
-        if cleanup_path and host_sav_path != cleanup_path + '.json':
-            clean_up_files(cleanup_path)
-        basename = os.path.basename(host_sav_path).split('.')[0]
+    tmp = select_file()
+    if tmp:  # If a file was selected, update the label
+        basename = os.path.basename(tmp).split('.')[0]
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
-            host_sav_path = None
-            source_player_path_label.config(text="...")
             return
-        host_json = load_file(host_sav_path)
+        host_json = load_file(tmp)
         if not host_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
-            host_sav_path = None
-            source_player_path_label.config(text="...")
             return
-        source_player_path_label.config(text=host_sav_path)
-        host_sav_path = host_sav_path[:-5] if host_sav_path.endswith('.json') else host_sav_path
+        if cleanup_path and tmp != cleanup_path + '.json':
+            clean_up_files(cleanup_path)
+        source_player_path_label.config(text=tmp)
+        host_sav_path = tmp[:-5] if tmp.endswith('.json') else tmp
 
 def source_level_file():
     global level_sav_path, source_level_path_label, level_json
     cleanup_path = None
     if level_sav_path:
         cleanup_path = level_sav_path
-    level_sav_path = select_file()
-    if level_sav_path:
-        if cleanup_path and level_sav_path != cleanup_path + '.json':
-            clean_up_files(cleanup_path)
-        if not level_sav_path.endswith('Level.sav') and not level_sav_path.endswith('Level.sav.json'):
+    tmp = select_file()
+    if tmp:
+        if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
-            level_sav_path = None
-            source_level_path_label.config(text="...")
             return
-        level_json = load_file(level_sav_path)
+        level_json = load_file(tmp)
         if not level_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
-            level_sav_path = None
-            source_level_path_label.config(text="...")
             return
-        source_level_path_label.config(text=level_sav_path)
-        level_sav_path = level_sav_path[:-5] if level_sav_path.endswith('.json') else level_sav_path
+        if cleanup_path and tmp != cleanup_path + '.json':
+            clean_up_files(cleanup_path)
+        source_level_path_label.config(text=tmp)
+        level_sav_path = tmp[:-5] if tmp.endswith('.json') else tmp
 
 def target_player_file():
     global t_host_sav_path, target_player_path_label, targ_json, target_json_cache
     cleanup_path = None
     if t_host_sav_path:
         cleanup_path = t_host_sav_path
-    t_host_sav_path = select_file()
-    if t_host_sav_path:
-        if cleanup_path and t_host_sav_path != cleanup_path + '.json':
-            clean_up_files(cleanup_path)
-        basename = os.path.basename(t_host_sav_path).split('.')[0]
+    tmp = select_file()
+    if tmp:
+        basename = os.path.basename(tmp).split('.')[0]
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
-            t_host_sav_path = None
-            target_player_path_label.config(text="...")
             return
-        targ_json = load_file(t_host_sav_path)
+        targ_json = load_file(tmp)
         if not targ_json:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
-            t_host_sav_path = None
-            target_player_path_label.config(text="...")
             return
-        target_player_path_label.config(text=t_host_sav_path)
-        t_host_sav_path = t_host_sav_path[:-5] if t_host_sav_path.endswith('.json') else t_host_sav_path
-        target_json_cache = None
+        if cleanup_path and tmp != cleanup_path + '.json':
+            clean_up_files(cleanup_path)
+        target_player_path_label.config(text=tmp)
+        t_host_sav_path = tmp[:-5] if tmp.endswith('.json') else tmp
+        target_json_reload = False
 
 def target_level_file():
     global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache
     cleanup_path = None
     if t_level_sav_path:
         cleanup_path = t_level_sav_path
-    t_level_sav_path = select_file()
-    if t_level_sav_path:
-        if cleanup_path and t_level_sav_path != cleanup_path + '.json':
-            clean_up_files(cleanup_path)
-        if not t_level_sav_path.endswith('Level.sav') and not t_level_sav_path.endswith('Level.sav.json'):
+    tmp = select_file()
+    if tmp:
+        if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
-            target_level_path_label = None
-            target_level_path_label.config(text="...")
             return
-        targ_lvl = load_file(t_level_sav_path)
+        targ_lvl = load_file(tmp)
         if not targ_lvl:
             messagebox.showerror(message="Invalid files, files must be either .sav or .sav.json")
-            t_level_sav_path = None
-            target_level_path_label.config(text="...")
             return
-        target_level_path_label.config(text=t_level_sav_path)
-        t_level_sav_path = t_level_sav_path[:-5] if t_level_sav_path.endswith('.json') else t_level_sav_path
-        target_level_cache = None
+        if cleanup_path and tmp != cleanup_path + '.json':
+            clean_up_files(cleanup_path)
+        target_level_path_label.config(text=tmp)
+        t_level_sav_path = tmp[:-5] if tmp.endswith('.json') else tmp
+        target_level_reload = False
 
 def on_exit():
     global level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path
