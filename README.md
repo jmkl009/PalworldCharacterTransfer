@@ -38,7 +38,7 @@ For other player's save, just know that their ID does not change across worlds, 
 脚本使用方式为运行python char-export-zh.py又或者解压char-export-zh.zip并运行char-export-zh.exe
 
 对于合作模式的存档，存档文件通常位于
-C:\Users<用户名>\AppData\Local\Pal\Saved\SaveGames<SteamID><原始服务器文件夹>
+C:\Users<用户名>\AppData\Local\Pal\Saved\SaveGames\<SteamID>\<世界文件夹>
 对于服务器存档，请通过Steam进入服务器的文件位置。
 你需要至少4个文件来完成转移：源玩家角色存档文件（在Players/中），源世界的level.sav文件，目标玩家角色存档，以及目标世界的Level.sav文件
 注意：旧世界的玩家至少需达到2级，每个想将存档转移到新世界的玩家必须首先在新世界创建一个角色，以便有一个目标玩家存档用于转移！
