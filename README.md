@@ -3,7 +3,7 @@ Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_ch
 
 This script transfers character between worlds in Palworld, which allows friends to transfer their characters to each other's server without losing one's progress.
 
-The script transfers the character and all its pals on your team and in your inventory, items on the character, and progress only and does not transfer any map objects, items in chests from the original world, and pals working at your base.
+The script transfers the character and all its pals on your team and in your inventory, items on the character, and progress only and **does not transfer any map objects, items in chests from the original world, and pals working at your base.**
 
 This is best suited if you want to join your friend's world with your pals and progress
 
