@@ -5,8 +5,9 @@
 import copy
 import json
 import os
-import SaveConverter
+from sys import exit
 
+import SaveConverter
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
