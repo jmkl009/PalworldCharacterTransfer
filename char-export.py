@@ -1,4 +1,4 @@
-# Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://rithub.com/EternalWraith/PalEdit
+# Credit to https://www.reddit.com/r/llworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://rithub.com/EternalWraith/PalEdit
 # I have fixed the error of tools not having durability (which causes crossbow, etc. to not load), by adding missing entries in the DynamicItemSaveData section.
 # I have also fixed the error of pals not belonging to the same guild and therefore is attackable by adding them to the guild.
 # Other fixes include prevention of duplicate and missing pals, etc.
@@ -265,6 +265,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     print(targ_uid, host_json["properties"]["SaveData"]["value"]["IndividualId"]["value"]["PlayerUId"]["value"], host_json["properties"]["SaveData"]["value"]["PlayerUId"]["value"])
     for pal_param in param_maps:
         pal_content = pal_param['value']['RawData']['value']['object']['SaveParameter']['value']
+        if 'SlotID' not in pal_content:
+            continue # Apparently people are having this sort of invalid entities.
         pal_container_id = pal_content['SlotID']['value']['ContainerId']['value']['ID']['value']
         if pal_container_id == host_inv_pals["value"]["ID"]["value"]:
             pal_content['SlotID']['value']['ContainerId']['value']['ID']['value'] = inv_pals["value"]["ID"]["value"]

@@ -265,6 +265,8 @@ def main():
     print(targ_uid, host_json["properties"]["SaveData"]["value"]["IndividualId"]["value"]["PlayerUId"]["value"], host_json["properties"]["SaveData"]["value"]["PlayerUId"]["value"])
     for pal_param in param_maps:
         pal_content = pal_param['value']['RawData']['value']['object']['SaveParameter']['value']
+        if 'SlotID' not in pal_content:
+            continue # Apparently people are having this sort of invalid entities.
         pal_container_id = pal_content['SlotID']['value']['ContainerId']['value']['ID']['value']
         if pal_container_id == host_inv_pals["value"]["ID"]["value"]:
             pal_content['SlotID']['value']['ContainerId']['value']['ID']['value'] = inv_pals["value"]["ID"]["value"]
