@@ -255,9 +255,9 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     if group_id is None:
         print('Guild ID not found, aboorting')
         exit()
-    guild_item_insatnce_ids = set()
+    guild_item_instance_dict = dict()
     for guild_item in guild_items_json:
-        guild_item_insatnce_ids.add(guild_item['instance_id'])
+        guild_item_instance_dict[guild_item['instance_id']] = guild_item
 
     print([inv_pals["value"]["ID"]["value"], inv_otomo["value"]["ID"]["value"], host_inv_pals["value"]["ID"]["value"], host_inv_otomo["value"]["ID"]["value"]])
 
@@ -278,8 +278,10 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         pal_param['value']['RawData']['value']['group_id'] = group_id
         print(pal_param["key"]["PlayerUId"]["value"], pal_param["value"]['RawData']['value']['object']['SaveParameter']['value']['CharacterID'])
         pal_param["key"]["PlayerUId"]["value"] = "00000000-0000-0000-0000-000000000001"
-        if pal_param["key"]["InstanceId"]["value"] not in guild_item_insatnce_ids:
+        if pal_param["key"]["InstanceId"]["value"] not in guild_item_instance_dict:
             guild_items_json.append({"guid": "00000000-0000-0000-0000-000000000001", "instance_id": pal_param["key"]["InstanceId"]["value"]})
+        elif guild_item_instance_dict[pal_param["key"]["InstanceId"]["value"]]['guid'] != "00000000-0000-0000-0000-000000000001":
+            guild_item_instance_dict[pal_param["key"]["InstanceId"]["value"]]['guid'] = "00000000-0000-0000-0000-000000000001"
         #pal_param["key"]["PlayerUId"]["value"] = targ_uid
     new_character_save_param_map = []
 
