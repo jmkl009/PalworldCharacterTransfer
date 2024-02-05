@@ -45,6 +45,10 @@ You need at least 4 files to complete the transfer:
 
 ## An example
 
+Lets say we want to transfer the character from a coop world of a friend to our own world.
+The friend's world would be the source, our own world the destination.
+
+SaveGames-folder of our friend:
 ```
 SaveGames
 └── <steam-id>
@@ -58,6 +62,7 @@ SaveGames
         └── WorldOption.sav
 ```
 
+Our SaveGames-folder:
 ```
 SaveGames
 └── <steam-id>
