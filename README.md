@@ -63,7 +63,7 @@ SaveGames
 └── <steam-id>
     └── <destination-world-id>
         ├── backup
-        ├── Level.sav  ----------  <- The targer world save-file
+        ├── Level.sav  ----------  <- The target world save-file
         ├── LevelMeta.sav
         ├── Players
         │   ├── 00000...0001.sav   <- the target player-placeholder save-file
