@@ -94,6 +94,8 @@ Thanks to
 
 - https://github.com/EternalWraith/PalEdit/tree/main
 
+Thanks @LeonMueller-OneAndOnly for writing this ReadMe
+
 # Chinese Translation
 
 这个脚本用于在 Palworld 世界间转移角色，允许朋友们将他们的角色转移到彼此的服务器上，而不会失去任何进度。
