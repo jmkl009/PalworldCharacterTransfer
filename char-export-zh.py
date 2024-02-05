@@ -303,18 +303,16 @@ def main():
         if container_id == inv_pals["value"]["ID"]["value"]:
             print("Found pal inventory in target")
             print("Doing it the hard way...")
-            pal_length = len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"])
+            pal_length = min(len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"]), len(host_pals["value"]["Slots"]["value"]["values"]))
             for j in range(pal_length):
                 host_pals["value"]["Slots"]["value"]["values"][j]["RawData"]['value']['values'][12] = 1 # Matching the byte array entry to 000000..001, the new key of the pals
                 targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"][j]["RawData"] = host_pals["value"]["Slots"]["value"]["values"][j]["RawData"]
 
-            #targ_lvl["root"]["properties"]["worldSaveData"]["Struct"]["value"]["Struct"]["CharacterContainerSaveData"]["Map"]["value"][i]["value"] = host_pals["value"]
             count = count + 1
         elif container_id == inv_otomo["value"]["ID"]["value"]:
             print("Found otomo inventory in target")
-            #targ_lvl["root"]["properties"]["worldSaveData"]["Struct"]["value"]["Struct"]["CharacterContainerSaveData"]["Map"]["value"][i]["value"] = host_otomo["value"]
             print("Doing it the hard way...")
-            pal_length = len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"])
+            pal_length = min(len(targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"]), len(host_otomo["value"]["Slots"]["value"]["values"]))
             for j in range(pal_length):
                 host_otomo["value"]["Slots"]["value"]["values"][j]["RawData"]['value']['values'][12] = 1 # Matching the byte array entry to 000000..001, the new key of the pals
                 targ_lvl["properties"]["worldSaveData"]["value"]["CharacterContainerSaveData"]["value"][i]["value"]["Slots"]["value"]["values"][j]["RawData"] = host_otomo["value"]["Slots"]["value"]["values"][j]["RawData"]
