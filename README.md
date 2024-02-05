@@ -3,6 +3,7 @@
 - [PalworldCharacterTransfer](#palworldcharactertransfer)
   - [How to use this script](#how-to-use-this-script)
   - [Where to find the save-files](#where-to-find-the-save-files)
+  - [An example](#an-example)
   - [How to identify the player save-files](#how-to-identify-the-player-save-files)
   - [Credits](#credits)
 - [Chinese Translation](#chinese-translation)
@@ -35,10 +36,11 @@ for co-op saves.
 
 For server saves, go to the dedicated server's file location through steam.
 
-You need at least 4 files to complete the transfer: 
-- The source player character save file in Players folder 
-- The source world's level.sav file 
-- The target player character save file 
+You need at least 4 files to complete the transfer:
+
+- The source player character save file in Players folder
+- The source world's level.sav file
+- The target player character save file
 - The target world's Level.sav file
 
 ## An example
@@ -48,25 +50,24 @@ SaveGames
 └── <steam-id>
     └── <source-world-id>
         ├── backup
-        ├── Level.sav              <- The source world save-file
+        ├── Level.sav  ----------  <- The source world save-file
         ├── LevelMeta.sav
         ├── Players
-        │   ├── 00000...0001.sav   
+        │   ├── 00000...0001.sav
         │   └── 12345...6789.sav   <- character save-file we want to transfer
         └── WorldOption.sav
 ```
-
 
 ```
 SaveGames
 └── <steam-id>
     └── <destination-world-id>
         ├── backup
-        ├── Level.sav              <- The targer world save-file
+        ├── Level.sav  ----------  <- The targer world save-file
         ├── LevelMeta.sav
         ├── Players
         │   ├── 00000...0001.sav   <- the target player-placeholder save-file
-        │   └── 98765...4321.sav   
+        │   └── 98765...4321.sav
         └── WorldOption.sav
 ```
 
