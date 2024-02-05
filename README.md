@@ -1,5 +1,12 @@
 # PalworldCharacterTransfer
 
+- [PalworldCharacterTransfer](#palworldcharactertransfer)
+  - [How to use this script](#how-to-use-this-script)
+  - [Where to find the save-files](#where-to-find-the-save-files)
+  - [How to identify the player save-files](#how-to-identify-the-player-save-files)
+  - [Credits](#credits)
+- [Chinese Translation](#chinese-translation)
+
 This script transfers character between worlds in Palworld, which allows friends to transfer their characters to each other's server without losing one's progress.
 
 The script transfers the character and all its pals on your team and in your inventory, items on the character, and progress.
@@ -13,14 +20,14 @@ This is best suited if you want to join your friend's world with your pals and p
 Running python char-export.py opens a graphical user interface to select source/target player saves and source/target level.sav files.
 
 ```
-python3 ./
+python3 ./char-export.py
 ```
 
-If you do not have Python installed, you can download a packaged .exe executable from the [release page](https://github.com/jmkl009/PalworldCharacterTransfer/releases).
+If you do not have Python installed, you can download a packaged .exe standalone-executable from the [release page](https://github.com/jmkl009/PalworldCharacterTransfer/releases).
 
 Download the latest `char-export.zip`, unpack it and run `char-export.exe`
 
-## Wehre to find the save-**files**
+## Where to find the save-files
 
 The save files are usually located at
 C:\Users\<username>\AppData\Local\Pal\Saved\SaveGames\<SteamID>\<Original Server Folder>
@@ -28,21 +35,40 @@ for co-op saves.
 
 For server saves, go to the dedicated server's file location through steam.
 
-You need at least 4 files to complete the transfer: The source player character save file in Players/ folder, the source world's level.sav file, the target player character save file, and the target world's Level.sav file
+You need at least 4 files to complete the transfer: 
+- The source player character save file in Players folder 
+- The source world's level.sav file 
+- The target player character save file 
+- The target world's Level.sav file
 
-https://tree.nathanfriend.io/?s=(%27options!(%27fancy!true~fullPathE~trailingSlashE~rootDotE)~N(%27N%27SaQGamesHRsteam-id%3EH*RwJ-id%3EBbackupBLKI*****FThe%20wJ%20%2F%20lKCBLKMetaIBPlayersB*00000...0001AhostB*12345...6789AguestBWJOptionIH%27)~Qrsion!%271%27)U%20AIFcharacterC%20of%20BH***C%20saQ-fileE!falseFU%3C-%20H%5CnI.savJorldKeQlNsource!QveR*%3CU*%20%01URQNKJIHFECBA*
+## An example
 
+```
 SaveGames
 └── <steam-id>
-    └── <world-id>
+    └── <source-world-id>
         ├── backup
-        ├── Level.sav             <- The world / level save-file
+        ├── Level.sav              <- The source world save-file
         ├── LevelMeta.sav
         ├── Players
-        │   ├── 00000...0001.sav   <- character save-file of host
-        │   └── 12345...6789.sav   <- character save-file of guest
+        │   ├── 00000...0001.sav   
+        │   └── 12345...6789.sav   <- character save-file we want to transfer
         └── WorldOption.sav
+```
 
+
+```
+SaveGames
+└── <steam-id>
+    └── <destination-world-id>
+        ├── backup
+        ├── Level.sav              <- The targer world save-file
+        ├── LevelMeta.sav
+        ├── Players
+        │   ├── 00000...0001.sav   <- the target player-placeholder save-file
+        │   └── 98765...4321.sav   
+        └── WorldOption.sav
+```
 
 ## How to identify the player save-files
 
@@ -56,9 +82,13 @@ For other player's save, just know that their ID does not change across worlds, 
 
 ## Credits
 
-Credit to https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/ and https://github.com/EternalWraith/PalEdit/tree/main
+Thanks to
 
-## Chinese Translation
+- https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/
+
+- https://github.com/EternalWraith/PalEdit/tree/main
+
+# Chinese Translation
 
 这个脚本用于在 Palworld 世界间转移角色，允许朋友们将他们的角色转移到彼此的服务器上，而不会失去任何进度。
 
