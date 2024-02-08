@@ -332,7 +332,8 @@ PALWORLD_CUSTOM_PROPERTIES[".worldSaveData.GroupSaveDataMap.Value.RawData"] = (s
 OwnerPlayerUIdSearchPrefix = b'\x0f\x00\x00\x00OwnerPlayerUId\x00\x0f\x00\x00\x00StructProperty\x00\x10\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00Guid\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 LocalIdSearchPrefix = b'\x16\x00\x00\x00LocalIdInCreatedWorld\x00\x0f\x00\x00\x00StructProperty\x00\x10\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00Guid\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 PalSlotDataPrefix = b'\r\x00\x00\x00ByteProperty\x00\x00!\x00\x00\x00'
-
+OldOwnerPlayerUIdPrefix = b'\x13\x00\x00\x00OldOwnerPlayerUIds\x00\x0e\x00\x00\x00ArrayProperty\x00'
+OldOwnerPlayerUIdSuffix = b'\x06\x00\x00\x00MaxHP'
 
 def find_id_match_prefix(encoded_bytes, prefix):
     start_idx = encoded_bytes.find(prefix) + len(prefix)
@@ -513,13 +514,15 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         targ_json["SaveData"]["value"]["RecordData"] = host_json["SaveData"]["value"]["RecordData"]
         targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"]["PlayerCharacterMakeData"]
 
+    found = False
     for i, char_save_instance in enumerate(targ_lvl["CharacterSaveParameterMap"]["value"]):
         instance_id = char_save_instance["key"]["InstanceId"]["value"]
         if instance_id == char_instanceid:
             print("Existing character parameter map found, overwriting")
             char_save_instance['value'] = exported_map['value']
+            found = True
             break
-    if i == len(targ_lvl["CharacterSaveParameterMap"]["value"]):
+    if not found:
         print("Couldn't find character paramater map, aborting")
         exit()
 
@@ -566,9 +569,19 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         elif pal_container_id_bytes == host_inv_otomo["value"]["ID"]["value"].raw_bytes:
             pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_otomo["value"]["ID"]["value"].raw_bytes
         player_uid_start_idx = pal_data.find(OwnerPlayerUIdSearchPrefix) + len(OwnerPlayerUIdSearchPrefix)
+
+        old_owner_players_start = pal_data[player_uid_start_idx:].find(OldOwnerPlayerUIdPrefix) + player_uid_start_idx
+        old_owner_players_end = pal_data[old_owner_players_start:].find(OldOwnerPlayerUIdSuffix) + old_owner_players_start
+        old_owner_players = SkipFArchiveReader(pal_data[old_owner_players_start:old_owner_players_end]).curr_property()
+        old_owner_players['OldOwnerPlayerUIds']['value']['values'] = [targ_uid]
+        tmp_writer = SkipFArchiveWriter()
+        tmp_writer.curr_properties(old_owner_players)
+        replace_bytes = tmp_writer.bytes()
+
         pal_data_bytearray[player_uid_start_idx:player_uid_start_idx + 16] = targ_uid.raw_bytes
         pal_data_bytearray[-16:] = group_id.raw_bytes
-        pal_param['value']['RawData']['value'] = bytes(pal_data_bytearray)
+
+        pal_param['value']['RawData']['value'] = bytes(pal_data_bytearray[:old_owner_players_start] + replace_bytes + pal_data_bytearray[old_owner_players_end:])
         # print(UUID(pal_data[-16:]), UUID(pal_param['value']['RawData']['value'][-16:]))
         if pal_param["key"]["InstanceId"]["value"] not in guild_item_instances:
             guild_items_json.append(
