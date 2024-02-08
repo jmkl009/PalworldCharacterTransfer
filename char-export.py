@@ -42,26 +42,30 @@ class SkipFArchiveWriter(FArchiveWriter):
             self.fstring(key)
             self.property(properties[key])
 
-    def write_sections(self, props, section_ranges, bytes):
+    def write_sections(self, props, section_ranges, bytes, parent_section_size_idx):
         props = [{k: v} for k, v in props.items()]
         prop_bytes = []
         for prop in props:
             self.curr_properties(prop)
             prop_bytes.append(self.bytes())
             self.data = io.BytesIO()
-        # print(prop_bytes[0])
         bytes_concat_array = []
         last_end = 0
+        n_bytes_more = 0
+        old_size = struct.unpack('Q', bytes[parent_section_size_idx:parent_section_size_idx+8])[0]
         for prop_byte, (section_start, section_end) in zip(prop_bytes, section_ranges):
             bytes_concat_array.append(bytes[last_end:section_start])
             bytes_concat_array.append(prop_byte)
-            # print(prop_byte[:100], prop_byte[-100:])
-            # print(bytes[section_start:section_start+100], bytes[section_end-100:section_end])
+            n_bytes_more += len(prop_byte) - (section_end - section_start)
             last_end = section_end
         bytes_concat_array.append(bytes[last_end:])
+        new_size_bytes = struct.pack('Q', old_size + n_bytes_more)
+        # parent section should always be the first
+        bytes_concat_array[0] = bytes_concat_array[0][:parent_section_size_idx] + new_size_bytes + bytes_concat_array[0][parent_section_size_idx+8:]
         output = b''
         for byte_segment in bytes_concat_array:
             output += byte_segment
+
         return output
 
 
@@ -670,7 +674,9 @@ of your save folder before continuing. Press Yes if you would like to continue.'
                                                            enumerate(level_additional_dynamic_containers) if
                                                            i not in repeated_indices]
 
-    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl, target_section_ranges, target_raw_gvas)
+    WORLDSAVESIZEPREFIX = b'\x0e\x00\x00\x00worldSaveData\x00\x0f\x00\x00\x00StructProperty\x00'
+    size_idx = target_raw_gvas.find(WORLDSAVESIZEPREFIX) + len(WORLDSAVESIZEPREFIX)
+    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl, target_section_ranges, target_raw_gvas, size_idx)
 
     gvas_to_sav(t_level_sav_path, output_data)
     targ_json_gvas.properties = copy.deepcopy(targ_json)
@@ -686,20 +692,13 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 def sav_to_gvas(file):
     with open(file, 'rb') as f:
         data = f.read()
-        raw_gvas, _ = decompress_sav_to_gvas(data)
-    return raw_gvas
+        raw_gvas, save_type = decompress_sav_to_gvas(data)
+    return raw_gvas, save_type
 
 
 def gvas_to_sav(file, gvas_data):
-    if (
-        "Pal.PalWorldSaveGame" in target_header.save_game_class_name
-        or "Pal.PalLocalWorldSaveGame" in target_header.save_game_class_name
-        ):
-        save_type = 0x32
-    else:
-        save_type = 0x31
     sav_file_data = compress_gvas_to_sav(
-        gvas_data, save_type
+        gvas_data, target_save_type
     )
     with open(file, 'wb') as out:
         out.write(sav_file_data)
@@ -720,8 +719,8 @@ def load_file(path):
     global status_label, root
     loaded_file = None
     if path.endswith(".sav"):
-        loaded_file = sav_to_gvas(path)
-    return loaded_file
+        loaded_file, save_type = sav_to_gvas(path)
+    return loaded_file, save_type
 
 def source_player_file():
     global host_sav_path, source_player_path_label, host_json
@@ -731,7 +730,7 @@ def source_player_file():
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
             return
-        raw_gvas = load_file(tmp)
+        raw_gvas, _ = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
@@ -746,7 +745,7 @@ def source_level_file():
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
             return
-        raw_gvas = load_file(tmp)
+        raw_gvas, _ = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
@@ -769,7 +768,7 @@ def target_player_file():
         if len(basename) != 32 or not ishex(basename):
             messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
             return
-        raw_gvas = load_file(tmp)
+        raw_gvas, _ = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
@@ -779,18 +778,17 @@ def target_player_file():
         t_host_sav_path = tmp
 
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_header, target_raw_gvas
+    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type
     tmp = select_file()
     if tmp:
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
             messagebox.showerror("Incorrect file", "This is not the right file. Please select the Level.sav file.")
             return
-        raw_gvas = load_file(tmp)
+        raw_gvas, target_save_type = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
         reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
-        target_header = GvasHeader.read(reader)
         target_raw_gvas = raw_gvas
         targ_lvl, target_section_ranges = reader.load_sections([
             ('CharacterSaveParameterMap', MAP_START),
@@ -810,7 +808,7 @@ def on_exit():
 
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
 level_json, host_json, targ_lvl, targ_json = None, None, None, None
-target_section_ranges, target_header, target_raw_gvas, targ_json_gvas = None, None, None, None
+target_section_ranges, target_save_type, target_raw_gvas, targ_json_gvas = None, None, None, None
 
 # main()
 root = Tk()
