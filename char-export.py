@@ -331,6 +331,7 @@ PALWORLD_CUSTOM_PROPERTIES[".worldSaveData.GroupSaveDataMap.Value.RawData"] = (s
 
 OwnerPlayerUIdSearchPrefix = b'\x0f\x00\x00\x00OwnerPlayerUId\x00\x0f\x00\x00\x00StructProperty\x00\x10\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00Guid\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 LocalIdSearchPrefix = b'\x16\x00\x00\x00LocalIdInCreatedWorld\x00\x0f\x00\x00\x00StructProperty\x00\x10\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00Guid\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+PalSlotDataPrefix = b'\r\x00\x00\x00ByteProperty\x00\x00!\x00\x00\x00'
 
 
 def find_id_match_prefix(encoded_bytes, prefix):
@@ -348,6 +349,18 @@ def find_all_ids_match_prefix(encoded_bytes, prefix):
         ids.append(UUID(encoded_bytes[start_idx:last_idx]))
         start_idx = encoded_bytes[last_idx:].find(prefix) + last_idx
     return ids
+
+
+def find_all_occurrences_with_prefix(encoded_bytes, prefix):
+    last_idx = 0
+    start_idx = encoded_bytes.find(prefix)
+    end_indices = []
+    while start_idx != last_idx - 1:
+        start_idx += len(prefix)
+        last_idx = start_idx
+        end_indices.append(start_idx)
+        start_idx = encoded_bytes[last_idx:].find(prefix) + last_idx
+    return end_indices
 
 
 def main():
@@ -576,14 +589,26 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
 
     count = 0
-    # TODO: check if direct overwrite is working or not.
     for container in targ_lvl["CharacterContainerSaveData"]["value"]:
         container_id = container["key"]["ID"]["value"]
         if container_id == inv_pals["value"]["ID"]["value"]:
-            container['value'] = host_pals["value"]
+            # print(container['value'])
+            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'], PalSlotDataPrefix)
+            source_slot_data_starts = find_all_occurrences_with_prefix(host_pals['value']['Slots']['value'], PalSlotDataPrefix)
+            target_slot_bytearray = bytearray(container['value']['Slots']['value'])
+            source_slot_bytearray = bytearray(host_pals['value']['Slots']['value'])
+            for target_start, source_start in zip(target_slot_data_starts, source_slot_data_starts):
+                target_slot_bytearray[target_start:target_start+33] = source_slot_bytearray[source_start:source_start+33]
+            container['value']['Slots']['value'] = bytes(target_slot_bytearray)
             count += 1
         elif container_id == inv_otomo["value"]["ID"]["value"]:
-            container['value'] = host_otomo["value"]
+            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'], PalSlotDataPrefix)
+            source_slot_data_starts = find_all_occurrences_with_prefix(host_otomo['value']['Slots']['value'], PalSlotDataPrefix)
+            target_slot_bytearray = bytearray(container['value']['Slots']['value'])
+            source_slot_bytearray = bytearray(host_otomo['value']['Slots']['value'])
+            for target_start, source_start in zip(target_slot_data_starts, source_slot_data_starts):
+                target_slot_bytearray[target_start:target_start+33] = source_slot_bytearray[source_start:source_start+33]
+            container['value']['Slots']['value'] = bytes(target_slot_bytearray)
             count += 1
         if count >= 2:
             print("Found all pal containers")
