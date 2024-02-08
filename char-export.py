@@ -814,6 +814,7 @@ def source_level_file():
         source_level_path_label.config(text=tmp)
         level_sav_path = tmp
         selected_source_player = None
+        selected_target_player = None
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
@@ -841,6 +842,7 @@ def target_level_file():
         load_players(targ_lvl, False)
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
+        selected_source_player = None
         selected_target_player = None
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
