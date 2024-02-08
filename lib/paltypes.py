@@ -31,11 +31,11 @@ PALWORLD_TYPE_HINTS = {
 }
 
 PALWORLD_CUSTOM_PROPERTIES = {
-    ".worldSaveData.GroupSaveDataMap": (decode_group_data, encode_group_data),
-    ".worldSaveData.CharacterSaveParameterMap.Value.RawData": (
-        decode_character_data,
-        encode_character_data,
-    ),
+    # ".worldSaveData.GroupSaveDataMap": (decode, encode),
+    # ".worldSaveData.CharacterSaveParameterMap.Value.RawData": (
+    #     decode_character_data,
+    #     encode_character_data,
+    # ),
     # ".worldSaveData.MapObjectSaveData.MapObjectSaveData.Model.BuildProcess.RawData": (),
     # ".worldSaveData.MapObjectSaveData.MapObjectSaveData.Model.Connector.RawData": (),
     # ".worldSaveData.MapObjectSaveData.MapObjectSaveData.Model.RawData": (),
