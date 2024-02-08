@@ -814,12 +814,11 @@ def source_level_file():
         source_level_path_label.config(text=tmp)
         level_sav_path = tmp
         selected_source_player = None
-        selected_target_player = None
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type
+    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player
     tmp = select_file()
     if tmp:
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
@@ -842,7 +841,6 @@ def target_level_file():
         load_players(targ_lvl, False)
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
-        selected_source_player = None
         selected_target_player = None
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
