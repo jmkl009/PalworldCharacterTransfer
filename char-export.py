@@ -6,7 +6,7 @@ from sys import exit
 import SaveConverter
 from tkinter import *
 from tkinter.filedialog import askopenfilename
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from lib.palsav import compress_gvas_to_sav, decompress_sav_to_gvas
 from lib.paltypes import PALWORLD_CUSTOM_PROPERTIES, PALWORLD_TYPE_HINTS
 from lib.gvas import GvasHeader, GvasFile
@@ -20,6 +20,18 @@ from time import time
 STRUCT_START = b'\x0f\x00\x00\x00StructProperty\x00'
 MAP_START = b'\x0c\x00\x00\x00MapProperty\x00'
 ARRAY_START = b'\x0e\x00\x00\x00ArrayProperty\x00'
+
+def _convert_stringval(value):
+    """Converts a value to, hopefully, a more appropriate Python object."""
+    if hasattr(value, 'typename'):
+        value = str(value)
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            pass
+    return value
+
+ttk._convert_stringval = _convert_stringval
 
 
 class SkipFArchiveWriter(FArchiveWriter):
@@ -371,23 +383,32 @@ def find_all_occurrences_with_prefix(encoded_bytes, prefix):
 def main():
     global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
     
-    if None in [host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path]:
-        messagebox.showerror(message='Please have all files selected before starting transfer.')
+    if None in [level_sav_path, t_level_sav_path, selected_source_player, selected_target_player]:
+        messagebox.showerror(message='Please have both level files and players selected before starting transfer.')
         return
 
     # Warn the user about potential data loss.
-    response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your save files and could \
+    response = messagebox.askyesno(title='WARNING', message='WARNING: Running this script WILL change your target save files and could \
 potentially corrupt your data. It is HIGHLY recommended that you make a backup \
 of your save folder before continuing. Press Yes if you would like to continue.')
     if not response:
         return
 
+    host_json = load_player_file(level_sav_path, selected_source_player)
+    if host_json is None:
+        return
+    host_json = host_json.properties
+    targ_json = load_player_file(t_level_sav_path, selected_target_player)
+    if targ_json is None:
+        return
+    targ_json = targ_json.properties
+
     host_json_cache = copy.deepcopy(host_json)
     level_json_cache = copy.deepcopy(level_json)
 
 
-    host_guid = UUID.from_str(os.path.basename(host_sav_path).split('.')[0])
-    targ_guid = UUID.from_str(os.path.basename(t_host_sav_path).split('.')[0])
+    host_guid = UUID.from_str(selected_source_player)
+    targ_guid = UUID.from_str(selected_target_player)
 
     host_instance_id = host_json["SaveData"]["value"]["IndividualId"]["value"]["InstanceId"]["value"]
 
@@ -717,7 +738,7 @@ def ishex(s):
 
 def load_file(path):
     global status_label, root
-    loaded_file = None
+    loaded_file, save_type = None, None
     if path.endswith(".sav"):
         loaded_file, save_type = sav_to_gvas(path)
     return loaded_file, save_type
@@ -738,8 +759,38 @@ def source_player_file():
         source_player_path_label.config(text=tmp)
         host_sav_path = tmp
 
+
+def load_player_file(level_sav_path, player_uid):
+    player_file_path = os.path.join(os.path.dirname(level_sav_path), 'Players', player_uid + '.sav')
+    if not os.path.exists(player_file_path):
+        messagebox.showerror(message=f"Player file {player_file_path} not present")
+        return None
+    raw_gvas, _ = load_file(player_file_path)
+    if not raw_gvas:
+        messagebox.showerror(message=f"Invalid file {player_file_path}")
+        return
+    return GvasFile.read(raw_gvas)
+
+
+source_players = dict()
+target_players = dict()
+def load_players(save_json, is_source):
+    global source_players, target_players
+    players = dict()
+    for group_data in save_json["GroupSaveDataMap"]["value"]:
+        if group_data["value"]["GroupType"]["value"]["value"] == "EPalGroupType::Guild":
+            group_id = group_data["value"]["RawData"]["value"]['group_id']
+            players[group_id] = group_data["value"]["RawData"]["value"]["players"]
+    list_box = source_player_list if is_source else target_player_list
+    for item in list_box.get_children():
+        list_box.delete(item)
+    for guild_id, player_items in players.items():
+        for player_item in player_items:
+            playerUId = ''.join(str(player_item['player_uid']).split('-')).upper()
+            list_box.insert('', END, values=(guild_id, playerUId, player_item['player_info']['player_name']))
+
 def source_level_file():
-    global level_sav_path, source_level_path_label, level_json
+    global level_sav_path, source_level_path_label, level_json, selected_source_player
     tmp = select_file()
     if tmp:
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
@@ -757,11 +808,13 @@ def source_level_file():
             ('GroupSaveDataMap', MAP_START)],
             path='.worldSaveData'
         )
+        load_players(level_json, True)
         source_level_path_label.config(text=tmp)
         level_sav_path = tmp
+        selected_source_player = None
 
 def target_player_file():
-    global t_host_sav_path, target_player_path_label, targ_json_gvas, targ_json, target_json_cache
+    global t_host_sav_path, target_player_path_label, targ_json_gvas, targ_json, target_json_cache, selected_target_player
     tmp = select_file()
     if tmp:
         basename = os.path.basename(tmp).split('.')[0]
@@ -776,6 +829,7 @@ def target_player_file():
         targ_json = targ_json_gvas.properties
         target_player_path_label.config(text=tmp)
         t_host_sav_path = tmp
+        selected_target_player = None
 
 def target_level_file():
     global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type
@@ -798,6 +852,7 @@ def target_level_file():
             ('GroupSaveDataMap', MAP_START)],
             path='.worldSaveData'
         )
+        load_players(targ_lvl, False)
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
 
@@ -806,9 +861,20 @@ def on_exit():
     print("Application is closing")
     root.destroy()  # Ensures the application window closes cleanly
 
+def on_selection_of_source_player(event):
+    global selected_source_player
+    selected_source_player = source_player_list.item(source_player_list.selection()[0])['values'][1]
+    current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
+
+def on_selection_of_target_player(event):
+    global selected_target_player
+    selected_target_player = target_player_list.item(target_player_list.selection()[0])['values'][1]
+    current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
+
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
 level_json, host_json, targ_lvl, targ_json = None, None, None, None
 target_section_ranges, target_save_type, target_raw_gvas, targ_json_gvas = None, None, None, None
+selected_source_player, selected_target_player = None, None
 
 # main()
 root = Tk()
@@ -821,13 +887,6 @@ status_label.grid(row=0, column=0, columnspan=2, pady=20, sticky="ew")
 
 root.columnconfigure(0, weight=3)
 root.columnconfigure(1, weight=1)
-Button(
-    root,
-    text='Select Source Player File',
-    command=source_player_file
-).grid(row=1, column=1, padx=10, pady=20, sticky="ew")
-source_player_path_label = Label(root, text="...", wraplength=600)
-source_player_path_label.grid(row=1, column=0, padx=10, pady=20, sticky="ew")
 
 Button(
     root,
@@ -837,13 +896,19 @@ Button(
 source_level_path_label = Label(root, text="...", wraplength=600)
 source_level_path_label.grid(row=2, column=0, padx=10, pady=20, sticky="ew")
 
-Button(
-    root,
-    text='Select Target Player File',
-    command=target_player_file
-).grid(row=3, column=1, padx=10, pady=20, sticky="ew")
-target_player_path_label = Label(root, text="...", wraplength=600)
-target_player_path_label.grid(row=3, column=0, padx=10, pady=20, sticky="ew")
+source_player_list = ttk.Treeview(root, columns=(0, 1, 2), show='headings')
+source_player_list.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
+
+# Define the column headings
+source_player_list.heading(0, text='Guild ID')
+source_player_list.heading(1, text='Player ID')
+source_player_list.heading(2, text='NickName')
+
+source_player_list.column(0, width=100)
+source_player_list.column(1, width=100)
+source_player_list.column(2, width=100)
+
+source_player_list.bind('<<TreeviewSelect>>', on_selection_of_source_player)
 
 Button(
     root,
@@ -853,11 +918,29 @@ Button(
 target_level_path_label = Label(root, text="...", wraplength=600)
 target_level_path_label.grid(row=4, column=0, padx=10, pady=20, sticky="ew")
 
+
+target_player_list = ttk.Treeview(root, columns=(0, 1, 2), show='headings')
+target_player_list.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
+
+# Define the column headings
+target_player_list.heading(0, text='Guild ID')
+target_player_list.heading(1, text='Player ID')
+target_player_list.heading(2, text='NickName')
+
+target_player_list.column(0, width=100)
+target_player_list.column(1, width=100)
+target_player_list.column(2, width=100)
+
+target_player_list.bind('<<TreeviewSelect>>', on_selection_of_target_player)
+
+current_selection_label = Label(root, text=f"source: {selected_source_player}, target: {selected_target_player}", wraplength=600)
+current_selection_label.grid(row=6, column=0, padx=10, pady=20, sticky="ew")
+
 Button(
     root,
     text='Start Transfer!',
     command=main
-).grid(row=5, column=0, columnspan=2, pady=20, sticky="ew")
+).grid(row=6, column=1, columnspan=2, pady=20, sticky="ew")
 
 # Register the exit function
 root.protocol("WM_DELETE_WINDOW", on_exit)
