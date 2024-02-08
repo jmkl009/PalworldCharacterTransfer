@@ -40,7 +40,7 @@ You need at least 4 files to complete the transfer:
 
 - The source player character save file in Players folder
 - The source world's level.sav file
-- The target player character save file
+- The target player character save file in Players folder
 - The target world's Level.sav file
 
 ## An example
@@ -90,9 +90,9 @@ For other player's save, just know that their ID does not change across worlds, 
 
 Thanks to
 
-- https://www.reddit.com/r/Palworld/comments/19dhpjn/server_to_server_character_transfer_script/
+- https://github.com/cheahjs/palworld-save-tools/tree/main for providing save parsing tools
 
-- https://github.com/EternalWraith/PalEdit/tree/main
+- https://github.com/magicbear/palworld-server-toolkit/tree/master for speed optimization startegy. The current version achieves 1/3 loading speed improvement over the original strategy.
 
 Thanks @LeonMueller-OneAndOnly for writing this ReadMe
 
@@ -120,3 +120,9 @@ C:\Users<用户名>\AppData\Local\Pal\Saved\SaveGames\<SteamID>\<世界文件夹
 对于本地合作模式的存档，如果你是主机，角色文件始终是 000000...001.sav
 
 **对于其他玩家的存档**，只需知道他们的 ID 在不同世界间不会改变，因此他们在你的合作世界和服务器世界的角色文件名是相同的。
+
+鸣谢：
+
+- https://github.com/cheahjs/palworld-save-tools/tree/main 提供存档解析工具
+
+- https://github.com/magicbear/palworld-server-toolkit/tree/master 提供速度优化方案。基于此方案，现版本又将加载速度提升了1/3。
