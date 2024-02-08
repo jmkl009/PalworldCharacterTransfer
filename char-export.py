@@ -496,7 +496,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             targ_json["SaveData"]["value"]["bossTechnologyPoint"]["value"] = 0
     targ_json["SaveData"]["value"]["UnlockedRecipeTechnologyNames"] = host_json["SaveData"]["value"][
         "UnlockedRecipeTechnologyNames"]
-    if 'RecordData' in targ_json["SaveData"]["value"]:
+    if 'RecordData' in host_json["SaveData"]["value"]:
         targ_json["SaveData"]["value"]["RecordData"] = host_json["SaveData"]["value"]["RecordData"]
         targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"]["PlayerCharacterMakeData"]
 
