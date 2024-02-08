@@ -814,6 +814,7 @@ def source_level_file():
         source_level_path_label.config(text=tmp)
         level_sav_path = tmp
         selected_source_player = None
+        current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
 def target_level_file():
@@ -840,7 +841,8 @@ def target_level_file():
         load_players(targ_lvl, False)
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
-
+        selected_target_player = None
+        current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 def on_exit():
     global level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path
@@ -850,14 +852,18 @@ def on_exit():
 
 def on_selection_of_source_player(event):
     global selected_source_player
-    selected_source_player = source_player_list.item(source_player_list.selection()[0])['values'][1]
-    current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
+    selections = source_player_list.selection()
+    if len(selections):
+        selected_source_player = source_player_list.item(selections[0])['values'][1]
+        current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
 def on_selection_of_target_player(event):
     global selected_target_player
-    selected_target_player = target_player_list.item(target_player_list.selection()[0])['values'][1]
-    current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
+    selections = target_player_list.selection()
+    if len(selections):
+        selected_target_player = target_player_list.item(selections[0])['values'][1]
+        current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
