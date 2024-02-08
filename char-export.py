@@ -713,6 +713,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     gvas_to_sav(t_level_sav_path, output_data)
     targ_json_gvas.properties = copy.deepcopy(targ_json)
+    t_host_sav_path = os.path.join(os.path.dirname(t_level_sav_path), 'Players', selected_target_player + '.sav')
     gvas_to_sav(t_host_sav_path, targ_json_gvas.write())
 
     host_json = host_json_cache
