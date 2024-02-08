@@ -21,6 +21,7 @@ STRUCT_START = b'\x0f\x00\x00\x00StructProperty\x00'
 MAP_START = b'\x0c\x00\x00\x00MapProperty\x00'
 ARRAY_START = b'\x0e\x00\x00\x00ArrayProperty\x00'
 
+
 def _convert_stringval(value):
     """Converts a value to, hopefully, a more appropriate Python object."""
     if hasattr(value, 'typename'):
@@ -30,6 +31,7 @@ def _convert_stringval(value):
         except (ValueError, TypeError):
             pass
     return value
+
 
 ttk._convert_stringval = _convert_stringval
 
@@ -64,7 +66,7 @@ class SkipFArchiveWriter(FArchiveWriter):
         bytes_concat_array = []
         last_end = 0
         n_bytes_more = 0
-        old_size = struct.unpack('Q', bytes[parent_section_size_idx:parent_section_size_idx+8])[0]
+        old_size = struct.unpack('Q', bytes[parent_section_size_idx:parent_section_size_idx + 8])[0]
         for prop_byte, (section_start, section_end) in zip(prop_bytes, section_ranges):
             bytes_concat_array.append(bytes[last_end:section_start])
             bytes_concat_array.append(prop_byte)
@@ -73,7 +75,9 @@ class SkipFArchiveWriter(FArchiveWriter):
         bytes_concat_array.append(bytes[last_end:])
         new_size_bytes = struct.pack('Q', old_size + n_bytes_more)
         # parent section should always be the first
-        bytes_concat_array[0] = bytes_concat_array[0][:parent_section_size_idx] + new_size_bytes + bytes_concat_array[0][parent_section_size_idx+8:]
+        bytes_concat_array[0] = bytes_concat_array[0][:parent_section_size_idx] + new_size_bytes + bytes_concat_array[
+                                                                                                       0][
+                                                                                                   parent_section_size_idx + 8:]
         output = b''
         for byte_segment in bytes_concat_array:
             output += byte_segment
@@ -351,6 +355,7 @@ PalSlotDataPrefix = b'\r\x00\x00\x00ByteProperty\x00\x00!\x00\x00\x00'
 OldOwnerPlayerUIdPrefix = b'\x13\x00\x00\x00OldOwnerPlayerUIds\x00\x0e\x00\x00\x00ArrayProperty\x00'
 OldOwnerPlayerUIdSuffix = b'\x06\x00\x00\x00MaxHP'
 
+
 def find_id_match_prefix(encoded_bytes, prefix):
     start_idx = encoded_bytes.find(prefix) + len(prefix)
     return UUID(encoded_bytes[start_idx:start_idx + 16])
@@ -382,7 +387,7 @@ def find_all_occurrences_with_prefix(encoded_bytes, prefix):
 
 def main():
     global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
-    
+
     if None in [level_sav_path, t_level_sav_path, selected_source_player, selected_target_player]:
         messagebox.showerror(message='Please have both level files and players selected before starting transfer.')
         return
@@ -394,18 +399,17 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     if not response:
         return
 
-    host_json = load_player_file(level_sav_path, selected_source_player)
-    if host_json is None:
+    host_json_gvas = load_player_file(level_sav_path, selected_source_player)
+    if host_json_gvas is None:
         return
-    host_json = host_json.properties
-    targ_json = load_player_file(t_level_sav_path, selected_target_player)
-    if targ_json is None:
+    host_json = host_json_gvas.properties
+    targ_json_gvas = load_player_file(t_level_sav_path, selected_target_player)
+    if targ_json_gvas is None:
         return
-    targ_json = targ_json.properties
+    targ_json = targ_json_gvas.properties
 
     host_json_cache = copy.deepcopy(host_json)
     level_json_cache = copy.deepcopy(level_json)
-
 
     host_guid = UUID.from_str(selected_source_player)
     targ_guid = UUID.from_str(selected_target_player)
@@ -537,7 +541,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         "UnlockedRecipeTechnologyNames"]
     if 'RecordData' in host_json["SaveData"]["value"]:
         targ_json["SaveData"]["value"]["RecordData"] = host_json["SaveData"]["value"]["RecordData"]
-        targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"]["PlayerCharacterMakeData"]
+        targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"][
+            "PlayerCharacterMakeData"]
 
     found = False
     for i, char_save_instance in enumerate(targ_lvl["CharacterSaveParameterMap"]["value"]):
@@ -582,7 +587,6 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     for guild_item in guild_items_json:
         guild_item_instances.add(str(guild_item['instance_id']))
 
-
     for pal_param in param_maps:
         pal_data = pal_param['value']['RawData']['value']
         slot_id_idx = pal_data.find(b'\x07\x00\x00\x00SlotID\x00\x0f\x00\x00\x00StructProperty\x00')
@@ -597,7 +601,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         player_uid_start_idx = pal_data.find(OwnerPlayerUIdSearchPrefix) + len(OwnerPlayerUIdSearchPrefix)
 
         old_owner_players_start = pal_data[player_uid_start_idx:].find(OldOwnerPlayerUIdPrefix) + player_uid_start_idx
-        old_owner_players_end = pal_data[old_owner_players_start:].find(OldOwnerPlayerUIdSuffix) + old_owner_players_start
+        old_owner_players_end = pal_data[old_owner_players_start:].find(
+            OldOwnerPlayerUIdSuffix) + old_owner_players_start
         old_owner_players = SkipFArchiveReader(pal_data[old_owner_players_start:old_owner_players_end]).curr_property()
         old_owner_players['OldOwnerPlayerUIds']['value']['values'][-1] = targ_uid
         tmp_writer = SkipFArchiveWriter()
@@ -612,8 +617,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         # print(UUID(pal_data[-16:]), UUID(pal_param['value']['RawData']['value'][-16:]))
         if pal_param["key"]["InstanceId"]["value"] not in guild_item_instances:
             guild_items_json.append(
-                {"guid": pal_param["key"]["PlayerUId"]["value"], "instance_id": pal_param["key"]["InstanceId"]["value"]})
-
+                {"guid": pal_param["key"]["PlayerUId"]["value"],
+                 "instance_id": pal_param["key"]["InstanceId"]["value"]})
 
     new_character_save_param_map = []
     removed = 0
@@ -627,33 +632,37 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     print(f"Removed {removed} pals from the original character in the target world")
     print(f"Appended {len(param_maps)} pals of data from the source character")
 
-
     count = 0
     for container in targ_lvl["CharacterContainerSaveData"]["value"]:
         container_id = container["key"]["ID"]["value"]
         if container_id == inv_pals["value"]["ID"]["value"]:
             # print(container['value'])
-            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'], PalSlotDataPrefix)
-            source_slot_data_starts = find_all_occurrences_with_prefix(host_pals['value']['Slots']['value'], PalSlotDataPrefix)
+            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'],
+                                                                       PalSlotDataPrefix)
+            source_slot_data_starts = find_all_occurrences_with_prefix(host_pals['value']['Slots']['value'],
+                                                                       PalSlotDataPrefix)
             target_slot_bytearray = bytearray(container['value']['Slots']['value'])
             source_slot_bytearray = bytearray(host_pals['value']['Slots']['value'])
             for target_start, source_start in zip(target_slot_data_starts, source_slot_data_starts):
-                target_slot_bytearray[target_start:target_start+33] = source_slot_bytearray[source_start:source_start+33]
+                target_slot_bytearray[target_start:target_start + 33] = source_slot_bytearray[
+                                                                        source_start:source_start + 33]
             container['value']['Slots']['value'] = bytes(target_slot_bytearray)
             count += 1
         elif container_id == inv_otomo["value"]["ID"]["value"]:
-            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'], PalSlotDataPrefix)
-            source_slot_data_starts = find_all_occurrences_with_prefix(host_otomo['value']['Slots']['value'], PalSlotDataPrefix)
+            target_slot_data_starts = find_all_occurrences_with_prefix(container['value']['Slots']['value'],
+                                                                       PalSlotDataPrefix)
+            source_slot_data_starts = find_all_occurrences_with_prefix(host_otomo['value']['Slots']['value'],
+                                                                       PalSlotDataPrefix)
             target_slot_bytearray = bytearray(container['value']['Slots']['value'])
             source_slot_bytearray = bytearray(host_otomo['value']['Slots']['value'])
             for target_start, source_start in zip(target_slot_data_starts, source_slot_data_starts):
-                target_slot_bytearray[target_start:target_start+33] = source_slot_bytearray[source_start:source_start+33]
+                target_slot_bytearray[target_start:target_start + 33] = source_slot_bytearray[
+                                                                        source_start:source_start + 33]
             container['value']['Slots']['value'] = bytes(target_slot_bytearray)
             count += 1
         if count >= 2:
             print("Found all pal containers")
             break
-
 
     for container in targ_lvl["ItemContainerSaveData"]["value"]:
         container_id = container["key"]["ID"]["value"]
@@ -697,7 +706,10 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     WORLDSAVESIZEPREFIX = b'\x0e\x00\x00\x00worldSaveData\x00\x0f\x00\x00\x00StructProperty\x00'
     size_idx = target_raw_gvas.find(WORLDSAVESIZEPREFIX) + len(WORLDSAVESIZEPREFIX)
-    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl, target_section_ranges, target_raw_gvas, size_idx)
+    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl,
+                                                                                                  target_section_ranges,
+                                                                                                  target_raw_gvas,
+                                                                                                  size_idx)
 
     gvas_to_sav(t_level_sav_path, output_data)
     targ_json_gvas.properties = copy.deepcopy(targ_json)
@@ -707,7 +719,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     level_json = level_json_cache
 
     print("Saved all data successfully. PLEASE DON'T BREAK")
-    messagebox.showinfo(message='Transfer finished! You may continue transferring more players or close the windows now.')
+    messagebox.showinfo(
+        message='Transfer finished! You may continue transferring more players or close the windows now.')
 
 
 def sav_to_gvas(file):
@@ -728,6 +741,7 @@ def gvas_to_sav(file, gvas_data):
 def select_file():
     return askopenfilename(filetypes=[("Palworld Saves", "*.sav *.json")])
 
+
 def ishex(s):
     try:
         int(s, 16)
@@ -742,22 +756,6 @@ def load_file(path):
     if path.endswith(".sav"):
         loaded_file, save_type = sav_to_gvas(path)
     return loaded_file, save_type
-
-def source_player_file():
-    global host_sav_path, source_player_path_label, host_json
-    tmp = select_file()
-    if tmp:  # If a file was selected, update the label
-        basename = os.path.basename(tmp).split('.')[0]
-        if len(basename) != 32 or not ishex(basename):
-            messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
-            return
-        raw_gvas, _ = load_file(tmp)
-        if not raw_gvas:
-            messagebox.showerror(message="Invalid files, files must be .sav")
-            return
-        host_json = GvasFile.read(raw_gvas).properties
-        source_player_path_label.config(text=tmp)
-        host_sav_path = tmp
 
 
 def load_player_file(level_sav_path, player_uid):
@@ -774,6 +772,8 @@ def load_player_file(level_sav_path, player_uid):
 
 source_players = dict()
 target_players = dict()
+
+
 def load_players(save_json, is_source):
     global source_players, target_players
     players = dict()
@@ -788,6 +788,7 @@ def load_players(save_json, is_source):
         for player_item in player_items:
             playerUId = ''.join(str(player_item['player_uid']).split('-')).upper()
             list_box.insert('', END, values=(guild_id, playerUId, player_item['player_info']['player_name']))
+
 
 def source_level_file():
     global level_sav_path, source_level_path_label, level_json, selected_source_player
@@ -813,23 +814,6 @@ def source_level_file():
         level_sav_path = tmp
         selected_source_player = None
 
-def target_player_file():
-    global t_host_sav_path, target_player_path_label, targ_json_gvas, targ_json, target_json_cache, selected_target_player
-    tmp = select_file()
-    if tmp:
-        basename = os.path.basename(tmp).split('.')[0]
-        if len(basename) != 32 or not ishex(basename):
-            messagebox.showerror(message="Selected file is not a player save file! They are of the format: {PlayerID}.sav")
-            return
-        raw_gvas, _ = load_file(tmp)
-        if not raw_gvas:
-            messagebox.showerror(message="Invalid files, files must be .sav")
-            return
-        targ_json_gvas = GvasFile.read(raw_gvas)
-        targ_json = targ_json_gvas.properties
-        target_player_path_label.config(text=tmp)
-        t_host_sav_path = tmp
-        selected_target_player = None
 
 def target_level_file():
     global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type
@@ -856,20 +840,24 @@ def target_level_file():
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
 
+
 def on_exit():
     global level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path
     print("Application is closing")
     root.destroy()  # Ensures the application window closes cleanly
+
 
 def on_selection_of_source_player(event):
     global selected_source_player
     selected_source_player = source_player_list.item(source_player_list.selection()[0])['values'][1]
     current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
+
 def on_selection_of_target_player(event):
     global selected_target_player
     selected_target_player = target_player_list.item(target_player_list.selection()[0])['values'][1]
     current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
+
 
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
 level_json, host_json, targ_lvl, targ_json = None, None, None, None
@@ -918,7 +906,6 @@ Button(
 target_level_path_label = Label(root, text="...", wraplength=600)
 target_level_path_label.grid(row=4, column=0, padx=10, pady=20, sticky="ew")
 
-
 target_player_list = ttk.Treeview(root, columns=(0, 1, 2), show='headings')
 target_player_list.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
 
@@ -933,7 +920,8 @@ target_player_list.column(2, width=100)
 
 target_player_list.bind('<<TreeviewSelect>>', on_selection_of_target_player)
 
-current_selection_label = Label(root, text=f"source: {selected_source_player}, target: {selected_target_player}", wraplength=600)
+current_selection_label = Label(root, text=f"source: {selected_source_player}, target: {selected_target_player}",
+                                wraplength=600)
 current_selection_label.grid(row=6, column=0, padx=10, pady=20, sticky="ew")
 
 Button(
