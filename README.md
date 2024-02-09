@@ -9,10 +9,16 @@
   - [Credits](#credits)
 - [Chinese Translation](#chinese-translation)
 
+**NEWS:**
+**The script is now compatible with base transfer methods. For those who don't know how to transfer the world with buildings over, simply**
+**1. Copy your Level.sav file from the old world to the new world.**
+**2. Each player creates a new character in the new world.**
+**3. Transfer each corresponding characters while keeping the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner of the GUI.**
+
 This script transfers character between worlds in Palworld, which allows friends to transfer their characters to each other's server without losing one's progress.
 
 The script transfers the character and all its pals on your team and in your inventory, items on the character, and progress.
-It does **not** transfer map objects, items in chests and pals working at your base.
+It, alone, does **not** transfer map objects, items in chests and pals working at your base.
 Move items into your inventory / pals into your team if you want to transfer them.
 
 This is best suited if you want to join your friend's world with your pals and progress.
