@@ -1,3 +1,10 @@
+
+**NEWS:**
+**The script is now compatible with base transfer methods. For those who don't know how to transfer the world with buildings over, simply**
+**1. Copy your Level.sav file from the old world to the new world.**
+**2. Each player creates a new character in the new world.**
+**3. Transfer each corresponding characters while keeping the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner of the GUI.**
+
 # PalworldCharacterTransfer
 
 - [PalworldCharacterTransfer](#palworldcharactertransfer)
@@ -8,12 +15,6 @@
   - [How to keep Guild ID after transfer](#how-to-keep-guild-id-after-transfer)
   - [Credits](#credits)
 - [Chinese Translation](#chinese-translation)
-
-**NEWS:**
-**The script is now compatible with base transfer methods. For those who don't know how to transfer the world with buildings over, simply**
-**1. Copy your Level.sav file from the old world to the new world.**
-**2. Each player creates a new character in the new world.**
-**3. Transfer each corresponding characters while keeping the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner of the GUI.**
 
 This script transfers character between worlds in Palworld, which allows friends to transfer their characters to each other's server without losing one's progress.
 
