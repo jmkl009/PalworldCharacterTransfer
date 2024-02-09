@@ -528,21 +528,21 @@ def main():
     print("Transferring profile data...")
     if "TechnologyPoint" in host_json["SaveData"]["value"]:
         targ_json["SaveData"]["value"]["TechnologyPoint"] = host_json["SaveData"]["value"]["TechnologyPoint"]
-    else:
-        if "TechnologyPoint" in targ_json["SaveData"]["value"]:
-            targ_json["SaveData"]["value"]["TechnologyPoint"]["value"] = 0
+    elif "TechnologyPoint" in targ_json["SaveData"]["value"]:
+        targ_json["SaveData"]["value"]["TechnologyPoint"]["value"] = 0
 
     if "bossTechnologyPoint" in host_json["SaveData"]["value"]:
         targ_json["SaveData"]["value"]["bossTechnologyPoint"] = host_json["SaveData"]["value"]["bossTechnologyPoint"]
-    else:
-        if "bossTechnologyPoint" in targ_json["properties"]["SaveData"]["value"]:
-            targ_json["SaveData"]["value"]["bossTechnologyPoint"]["value"] = 0
+    elif "bossTechnologyPoint" in targ_json["SaveData"]["value"]:
+        targ_json["SaveData"]["value"]["bossTechnologyPoint"]["value"] = 0
     targ_json["SaveData"]["value"]["UnlockedRecipeTechnologyNames"] = host_json["SaveData"]["value"][
         "UnlockedRecipeTechnologyNames"]
+    targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"][
+            "PlayerCharacterMakeData"]
     if 'RecordData' in host_json["SaveData"]["value"]:
         targ_json["SaveData"]["value"]["RecordData"] = host_json["SaveData"]["value"]["RecordData"]
-        targ_json["SaveData"]["value"]["PlayerCharacterMakeData"] = host_json["SaveData"]["value"][
-            "PlayerCharacterMakeData"]
+    elif 'RecordData' in targ_json["SaveData"]:
+        del targ_json['RecordData']
 
     found = False
     for i, char_save_instance in enumerate(targ_lvl["CharacterSaveParameterMap"]["value"]):
