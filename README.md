@@ -5,6 +5,7 @@
   - [Where to find the save-files](#where-to-find-the-save-files)
   - [An example](#an-example)
   - [How to identify the player save-files](#how-to-identify-the-player-save-files)
+  - [How to keep Guild ID after transfer](#how-to-keep-guild-id-after-transfer)
   - [Credits](#credits)
 - [Chinese Translation](#chinese-translation)
 
@@ -85,6 +86,12 @@ For local co-op saves, if you are the host, the character file is always 000000.
 For other player's save, just know that their ID does not change across worlds, and therefore their character file's name is the same for your co-op world and for the server's world.
 
 **Note: The player from the old world must be at least LV 2, and each player who wants to transfer their saves to a new world must first create a character in the new world, so that a target player save is present for transferring!**
+
+## How to keep Guild ID after transfer
+
+By default the script sets the guild of the transferred character to the guild of the original character in the new world.
+
+To keep the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner.
 
 ## Credits
 
