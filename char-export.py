@@ -569,7 +569,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     group_id = None
     targ_uid = targ_json["SaveData"]["value"]["IndividualId"]["value"]["PlayerUId"]["value"]
-    if not keep_guild_id:
+    if not keep_old_guild_id:
         for group_data in targ_lvl["GroupSaveDataMap"]["value"]:
             if group_data["value"]["GroupType"]["value"]["value"] == "EPalGroupType::Guild":
                 if targ_uid in [player_item['player_uid'] for player_item in
@@ -587,7 +587,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     else:
         # Remove guild with new character in it
         for group_idx, group_data in enumerate(targ_lvl["GroupSaveDataMap"]["value"]):
-            if group_data["value"]["GroupType"]["value"]["value"] == "EPalGroupType::Guild":
+            if group_data["value"]["GroupType"]["value"]["value"] == "EPalGroupType::Guild" and group_data["key"] not in source_guild_dict:
                 new_character_guild_found = False
                 for player_idx, player_item in enumerate(group_data["value"]["RawData"]["value"]["players"]):
                     if player_item['player_uid'] == targ_uid:
@@ -768,7 +768,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     WORLDSAVESIZEPREFIX = b'\x0e\x00\x00\x00worldSaveData\x00\x0f\x00\x00\x00StructProperty\x00'
     size_idx = target_raw_gvas.find(WORLDSAVESIZEPREFIX) + len(WORLDSAVESIZEPREFIX)
-    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl,
+    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(copy.deepcopy(targ_lvl),
                                                                                                   target_section_ranges,
                                                                                                   target_raw_gvas,
                                                                                                   size_idx)
@@ -837,6 +837,7 @@ def load_players(save_json, is_source):
     guild_dict = source_guild_dict if is_source else target_guild_dict
     if len(guild_dict) > 0:
         guild_dict.clear()
+    players = dict()
     for group_data in save_json["GroupSaveDataMap"]["value"]:
         if group_data["value"]["GroupType"]["value"]["value"] == "EPalGroupType::Guild":
             group_id = group_data["value"]["RawData"]["value"]['group_id']
@@ -928,7 +929,7 @@ def on_selection_of_target_player(event):
 def on_keep_old_guild_check():
     global keep_old_guild_id
     keep_old_guild_id = bool(checkbox_var.get())
-    print("Keep old guild id during transfer:", "on" if keep_old_guild_id else "off")
+    print("Keep old guild id after transfer:", "on" if keep_old_guild_id else "off")
 
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
 level_json, host_json, targ_lvl, targ_json = None, None, None, None
@@ -1004,7 +1005,7 @@ Button(
 ).grid(row=6, column=1, columnspan=2, pady=20, sticky="ew")
 
 checkbox_var = IntVar()
-keep_old_guild_check = Checkbutton(root, text="Keep Old Guild ID During Transfer", variable=checkbox_var, command=on_keep_old_guild_check)
+keep_old_guild_check = Checkbutton(root, text="Keep Old Guild ID After Transfer", variable=checkbox_var, command=on_keep_old_guild_check)
 keep_old_guild_check.grid(row=7, column=0, columnspan=2, sticky='w', padx=10, pady=5)
 
 
