@@ -89,7 +89,7 @@ For other player's save, just know that their ID does not change across worlds, 
 
 ## How to keep Guild ID after transfer
 
-By default the script sets the guild of the transferred character to the guild of the original character in the new world.
+By default the script sets the guild of the transferred character to the guild of the original character in the new world. If you happen to also have the base transferred from the old world, then you may encounter the issue of not being able to access your base and items.
 
 To keep the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner.
 
