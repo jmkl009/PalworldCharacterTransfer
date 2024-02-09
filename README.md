@@ -93,6 +93,10 @@ By default the script sets the guild of the transferred character to the guild o
 
 To keep the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner.
 
+For those who don't know how to transfer the world with buildings over, simply move your Level.sav file from the old world to the new world.
+
+Without checking ﻿"Keep Old Guild ID After Transfer", then you may encounter the issue of not being able to access your base and items.
+
 ## Credits
 
 Thanks to
