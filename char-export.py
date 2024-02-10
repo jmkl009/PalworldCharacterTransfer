@@ -970,7 +970,7 @@ def source_level_file():
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
         reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
-        group_save_section = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
+        group_save_section, _ = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
         source_section_load_handle = threading.Thread(target=load_all_source_sections_async, args=(group_save_section, reader))
         source_section_load_handle.start()
         load_players(group_save_section, True)
