@@ -1,3 +1,10 @@
+
+**NEWS:**
+**The script is now compatible with base transfer methods. (This does not mean it no longer transfers single characters over, just that there is a way to use this alongside base transfer methods.) For those who don't know how to transfer the world with buildings over, simply**
+**1. Copy your Level.sav file from the old world to the new world.**
+**2. Each player creates a new character in the new world.**
+**3. Transfer each corresponding characters while keeping the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner of the GUI.**
+
 # PalworldCharacterTransfer
 
 - [PalworldCharacterTransfer](#palworldcharactertransfer)
@@ -12,7 +19,7 @@
 This script transfers character between worlds in Palworld, which allows friends to transfer their characters to each other's server without losing one's progress.
 
 The script transfers the character and all its pals on your team and in your inventory, items on the character, and progress.
-It does **not** transfer map objects, items in chests and pals working at your base.
+It, alone, does **not** transfer map objects, items in chests and pals working at your base.
 Move items into your inventory / pals into your team if you want to transfer them.
 
 This is best suited if you want to join your friend's world with your pals and progress.
@@ -92,6 +99,10 @@ For other player's save, just know that their ID does not change across worlds, 
 By default the script sets the guild of the transferred character to the guild of the original character in the new world. If you happen to also have the base transferred from the old world, then you may encounter the issue of not being able to access your base and items.
 
 To keep the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner.
+
+For those who don't know how to transfer the world with buildings over, simply move your Level.sav file from the old world to the new world.
+
+Without checking ﻿"Keep Old Guild ID After Transfer", then you may encounter the issue of not being able to access your base and items.
 
 ## Credits
 
