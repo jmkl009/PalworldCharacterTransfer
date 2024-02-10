@@ -180,7 +180,7 @@ class SkipFArchiveReader(FArchiveReader):
         prop = self.curr_property(path=path)
         end_timer = time()
         print(f"Property {property_name} loaded in {end_timer - start_timer} seconds, total time including find: {end_timer - find_timer}")
-        return prop
+        return prop, (start_index, self.data.tell())
 
     def load_sections(self, prop_types, path='.worldSaveData', reverse=False):
         properties = {}
@@ -980,7 +980,7 @@ def source_level_file():
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
-def load_all_target_sections_async(group_save_section, reader):
+def load_all_target_sections_async(group_save_section, group_save_section_range, reader):
     global targ_lvl, target_section_ranges
     targ_lvl, target_section_ranges = reader.load_sections([
         ('CharacterSaveParameterMap', MAP_START),
@@ -990,6 +990,7 @@ def load_all_target_sections_async(group_save_section, reader):
         path='.worldSaveData'
     )
     targ_lvl.update(group_save_section)
+    target_section_ranges.append(group_save_section_range)
 
 
 def target_level_file():
@@ -1005,8 +1006,8 @@ def target_level_file():
             return
         target_raw_gvas = raw_gvas
         reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
-        group_save_section = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
-        target_section_load_handle = threading.Thread(target=load_all_target_sections_async, args=(group_save_section, reader))
+        group_save_section, group_save_section_range = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
+        target_section_load_handle = threading.Thread(target=load_all_target_sections_async, args=(group_save_section, group_save_section_range, reader))
         target_section_load_handle.start()
         load_players(group_save_section, False)
         target_level_path_label.config(text=tmp)
@@ -1059,6 +1060,8 @@ status_label.grid(row=0, column=0, columnspan=2, pady=20, sticky="ew")
 
 root.columnconfigure(0, weight=3)
 root.columnconfigure(1, weight=1)
+root.rowconfigure(3, weight=1)
+root.rowconfigure(5, weight=1)
 
 Button(
     root,
