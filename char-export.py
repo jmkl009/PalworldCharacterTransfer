@@ -1,6 +1,5 @@
 import pickle
 import os
-import deepdiff
 from sys import exit
 
 from tkinter import *
