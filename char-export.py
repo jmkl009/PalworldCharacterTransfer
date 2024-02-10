@@ -1,9 +1,8 @@
-import copy
-import json
+import pickle
 import os
+import deepdiff
 from sys import exit
 
-import SaveConverter
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk, messagebox
@@ -16,6 +15,7 @@ import io
 import struct
 from typing import Sequence
 from time import time
+import threading
 
 STRUCT_START = b'\x0f\x00\x00\x00StructProperty\x00'
 MAP_START = b'\x0c\x00\x00\x00MapProperty\x00'
@@ -53,8 +53,19 @@ class SkipFArchiveWriter(FArchiveWriter):
 
     def curr_properties(self, properties):
         for key in properties:
-            self.fstring(key)
-            self.property(properties[key])
+            if key not in ['custom_type', 'skip_type']:
+                self.fstring(key)
+                self.property(properties[key])
+
+    def properties(self, properties: dict[str, Any]):
+        for key in properties:
+            if key not in ['custom_type', 'skip_type']:
+                self.fstring(key)
+                self.property(properties[key])
+        self.fstring("None")
+
+    def copy(self) -> "SkipFArchiveWriter":
+        return SkipFArchiveWriter(self.custom_properties)
 
     def write_sections(self, props, section_ranges, bytes, parent_section_size_idx):
         props = [{k: v} for k, v in props.items()]
@@ -83,6 +94,18 @@ class SkipFArchiveWriter(FArchiveWriter):
             output += byte_segment
 
         return output
+
+
+    def guid(self, u): # Does not instantiate UUID class
+        self.data.write(u)
+
+
+    def optional_guid(self, u): # Does not instantiate UUID class
+        if u is None:
+            self.bool(False)
+        else:
+            self.bool(True)
+            self.data.write(u)
 
 
 class SkipFArchiveReader(FArchiveReader):
@@ -132,26 +155,41 @@ class SkipFArchiveReader(FArchiveReader):
             properties[name] = self.property(type_name, size, f"{path}.{name}")
         return properties
 
+    def guid(self):
+        # in the hot loop, avoid function calls
+        return self.data.read(16)
+
+    def optional_guid(self):
+        # in the hot loop, avoid function calls
+        if self.data.read(1)[0]:
+            return self.data.read(16)
+        return None
+
     def encode(self, property_name):
         return struct.pack('i', len(property_name) + 1) + property_name.encode('ascii') + b'\x00'
 
-    def find_property_start(self, property_name, type_start=STRUCT_START, offset=0):
-        return self.orig_data[offset:].find(self.encode(property_name) + type_start) + offset
+    def find_property_start(self, property_name, type_start=STRUCT_START, offset=0, reverse=False):
+        if not reverse:
+            return self.orig_data[offset:].find(self.encode(property_name) + type_start) + offset
+        return self.orig_data[offset:].rfind(self.encode(property_name) + type_start) + offset
 
-    def load_section(self, property_name, type_start=STRUCT_START, path='.worldSaveData'):
-        start_index = self.find_property_start(property_name, type_start)
-        # print(self.orig_data[start_index: start_index + 100])
+    def load_section(self, property_name, type_start=STRUCT_START, path='.worldSaveData', reverse=False):
+        find_timer = time()
+        start_index = self.find_property_start(property_name, type_start, reverse=reverse)
         self.data.seek(start_index, 0)
-        # c = time.time()
-        # return self.curr_property(path=path), c
-        return self.curr_property(path=path)
+        start_timer = time()
+        prop = self.curr_property(path=path)
+        end_timer = time()
+        print(f"Property {property_name} loaded in {end_timer - start_timer} seconds, total time including find: {end_timer - find_timer}")
+        return prop
 
-    def load_sections(self, prop_types, path='.worldSaveData'):
+    def load_sections(self, prop_types, path='.worldSaveData', reverse=False):
         properties = {}
         end_idx = 0
         section_ranges = []
         for prop, type_start in prop_types:
-            start_idx = self.find_property_start(prop, type_start, offset=end_idx)
+            find_timer = time()
+            start_idx = self.find_property_start(prop, type_start, offset=end_idx, reverse=reverse)
             if start_idx == end_idx - 1:
                 raise ValueError(f"Property {prop} not found")
             self.data.seek(start_idx, 0)
@@ -159,7 +197,7 @@ class SkipFArchiveReader(FArchiveReader):
             properties.update(self.curr_property(path=path))
             end_timer = time()
             end_idx = self.data.tell()
-            print(f"Property {prop} loaded in {end_timer - start_timer} seconds")
+            print(f"Property {prop} loaded in {end_timer - start_timer} seconds, total time including find: {end_timer - find_timer}")
             section_ranges.append((start_idx, end_idx))
         return properties, section_ranges
 
@@ -211,23 +249,23 @@ def skip_encode(
                 writer, property_type, properties
             )
     if property_type == "ArrayProperty":
-        del properties["custom_type"]
-        del properties["skip_type"]
+        # del properties["custom_type"]
+        # del properties["skip_type"]
         writer.fstring(properties["array_type"])
         writer.optional_guid(properties.get("id", None))
         writer.write(properties["value"])
         return len(properties["value"])
     elif property_type == "MapProperty":
-        del properties["custom_type"]
-        del properties["skip_type"]
+        # del properties["custom_type"]
+        # del properties["skip_type"]
         writer.fstring(properties["key_type"])
         writer.fstring(properties["value_type"])
         writer.optional_guid(properties.get("id", None))
         writer.write(properties["value"])
         return len(properties["value"])
     elif property_type == "StructProperty":
-        del properties["custom_type"]
-        del properties["skip_type"]
+        # del properties["custom_type"]
+        # del properties["skip_type"]
         writer.fstring(properties["struct_type"])
         writer.guid(properties["struct_id"])
         writer.optional_guid(properties.get("id", None))
@@ -255,6 +293,12 @@ def decode_group(
                 reader, group_bytes, group_type
             )
     return value
+
+def instance_id_reader(reader):
+    return {
+        "guid": reader.guid(),
+        "instance_id": reader.guid(),
+    }
 
 
 def decode_bytes(
@@ -304,18 +348,29 @@ def encode_group(
 ) -> int:
     if property_type != "MapProperty":
         raise Exception(f"Expected MapProperty, got {property_type}")
+    custom_type = properties["custom_type"]
     del properties["custom_type"]
     group_map = properties["value"]
-    for group in group_map:
+    encoded_list = []
+    for i, group in enumerate(group_map):
         group_type = group["value"]["GroupType"]["value"]["value"]
         if group_type == "EPalGroupType::Guild":
+            encoded_list.append((i, group["value"]["RawData"]["value"]))
             group["value"]["RawData"]["value"] = encode_bytes(group["value"]["RawData"]["value"])
-    return writer.property_inner(property_type, properties)
+    write_ret = writer.property_inner(property_type, properties)
+    properties["custom_type"] = custom_type
+    for i, orig_val in encoded_list:
+        group_map[i]["value"]["RawData"]["value"] = orig_val
+    return write_ret
 
+
+def instance_id_writer(writer, d):
+    writer.guid(d["guid"])
+    writer.guid(d["instance_id"])
 
 def encode_bytes(p: dict[str, Any]) -> bytes:
-    outer_writer = FArchiveWriter()
-    writer = FArchiveWriter()
+    outer_writer = SkipFArchiveWriter()
+    writer = SkipFArchiveWriter()
     writer.guid(p["group_id"])
     writer.fstring(p["group_name"])
     writer.tarray(instance_id_writer, p["individual_character_handle_ids"])
@@ -358,7 +413,7 @@ OldOwnerPlayerUIdSuffix = b'\x06\x00\x00\x00MaxHP'
 
 def find_id_match_prefix(encoded_bytes, prefix):
     start_idx = encoded_bytes.find(prefix) + len(prefix)
-    return UUID(encoded_bytes[start_idx:start_idx + 16])
+    return encoded_bytes[start_idx:start_idx + 16]
 
 
 def find_all_ids_match_prefix(encoded_bytes, prefix):
@@ -368,7 +423,7 @@ def find_all_ids_match_prefix(encoded_bytes, prefix):
     while start_idx != last_idx - 1:
         start_idx += len(prefix)
         last_idx = start_idx + 16
-        ids.append(UUID(encoded_bytes[start_idx:last_idx]))
+        ids.append(encoded_bytes[start_idx:last_idx])
         start_idx = encoded_bytes[last_idx:].find(prefix) + last_idx
     return ids
 
@@ -384,6 +439,47 @@ def find_all_occurrences_with_prefix(encoded_bytes, prefix):
         start_idx = encoded_bytes[last_idx:].find(prefix) + last_idx
     return end_indices
 
+
+def fast_deepcopy(json_dict):
+    return pickle.loads(pickle.dumps(json_dict, -1))
+
+
+class SkipGvasFile(GvasFile):
+    header: GvasHeader
+    properties: dict[str, Any]
+    trailer: bytes
+
+    @staticmethod
+    def read(
+        data: bytes,
+        type_hints: dict[str, str] = {},
+        custom_properties: dict[str, tuple[Callable, Callable]] = {},
+        allow_nan: bool = True,
+    ) -> "GvasFile":
+        gvas_file = SkipGvasFile()
+        with SkipFArchiveReader(
+            data,
+            type_hints=type_hints,
+            custom_properties=custom_properties,
+            allow_nan=allow_nan,
+        ) as reader:
+            gvas_file.header = GvasHeader.read(reader)
+            gvas_file.properties = reader.properties_until_end()
+            gvas_file.trailer = reader.read_to_end()
+            if gvas_file.trailer != b"\x00\x00\x00\x00":
+                print(
+                    f"{len(gvas_file.trailer)} bytes of trailer data, file may not have fully parsed"
+                )
+        return gvas_file
+
+    def write(
+        self, custom_properties: dict[str, tuple[Callable, Callable]] = {}
+    ) -> bytes:
+        writer = SkipFArchiveWriter(custom_properties)
+        self.header.write(writer)
+        writer.properties(self.properties)
+        writer.write(self.trailer)
+        return writer.bytes()
 
 def main():
     global host_sav_path, level_sav_path, t_level_sav_path, t_host_sav_path, host_json, level_json, targ_json, targ_lvl
@@ -408,14 +504,10 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         return
     targ_json = targ_json_gvas.properties
 
-    host_json_cache = copy.deepcopy(host_json)
-    level_json_cache = copy.deepcopy(level_json)
-
-    host_guid = UUID.from_str(selected_source_player)
-    targ_guid = UUID.from_str(selected_target_player)
+    host_guid = UUID.from_str(selected_source_player).raw_bytes
 
     host_instance_id = host_json["SaveData"]["value"]["IndividualId"]["value"]["InstanceId"]["value"]
-
+    pal_player_uid_filters = [b'\x00'*16, b'\x00'*12 + b'\x01\x00\x00\x00'] # Plyaer ID 000..00 and 000...01
     count = 0
     found = 0
     expected_containers = 7
@@ -429,16 +521,16 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             count = count + 1
             found = 1
             print('found instance')
-        elif character_save_param["key"]["PlayerUId"]["value"] in ["00000000-0000-0000-0000-000000000000",
-                                                                   "00000000-0000-0000-0000-000000000001"]:
+        elif character_save_param["key"]["PlayerUId"]["value"] in pal_player_uid_filters:
             if find_id_match_prefix(character_save_param['value']['RawData']['value'],
                                     OwnerPlayerUIdSearchPrefix) == host_guid:
-                param_maps.append(character_save_param)
+                param_maps.append(fast_deepcopy(character_save_param))
                 palcount += 1
 
     if not found:
         print("Couldn't find character instance data to export")
-        exit()
+        messagebox.showerror(message="Couldn't find character instance data to export")
+        return
     print("Found Character Parameter Map")
     print(f"Read {palcount} pals from source save")
 
@@ -507,7 +599,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         if count >= expected_containers:
             print("Found all target containers")
             break
-    dynamic_guids.remove(UUID(b'\x00' * 16))
+    dynamic_guids.remove(b'\x00' * 16)
 
     dynamic_container_level_json = level_json['DynamicItemSaveData']['value']['values']
     level_additional_dynamic_containers = []
@@ -518,7 +610,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     if count < expected_containers:
         print("Missing container info! Only found " + str(count))
-        exit()
+        messagebox.showerror(message="Missing container info! Only found " + str(count))
+        return
 
     char_instanceid = targ_json["SaveData"]["value"]["IndividualId"]["value"]["InstanceId"]["value"]
 
@@ -541,6 +634,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     elif 'RecordData' in targ_json["SaveData"]:
         del targ_json['RecordData']
 
+    target_section_load_handle.join()
     found = False
     for i, char_save_instance in enumerate(targ_lvl["CharacterSaveParameterMap"]["value"]):
         instance_id = char_save_instance["key"]["InstanceId"]["value"]
@@ -551,7 +645,8 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             break
     if not found:
         print("Couldn't find character paramater map, aborting")
-        exit()
+        messagebox.showerror(message="Couldn't find character paramater map, aborting")
+        return
 
     print("Searching for target containers")
 
@@ -579,11 +674,11 @@ of your save folder before continuing. Press Yes if you would like to continue.'
                     break
 
         if group_id is None:
-            print('Guild ID not found, aboorting')
-            exit()
+            messagebox.showerror(message='Guild ID not found, aboorting')
+            return
         guild_item_instances = set()
         for guild_item in guild_items_json:
-            guild_item_instances.add(str(guild_item['instance_id']))
+            guild_item_instances.add(guild_item['instance_id'])
     else:
         # Remove guild with new character in it
         for group_idx, group_data in enumerate(targ_lvl["GroupSaveDataMap"]["value"]):
@@ -629,11 +724,12 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             for group_data in source_guild_dict.values():
                 for player_item in group_data["value"]["RawData"]["value"]["players"]:
                     if player_item['player_uid'] == host_guid:
-                        old_guild = copy.deepcopy(group_data)
+                        old_guild = fast_deepcopy(group_data)
                         break
             if old_guild is None:
                 print("No guild containing the source player is found in the source either, either this is a bug or the files are corrupted. Aborting.")
-                exit()
+                messagebox.showerror(message="No guild containing the source player is found in the source either, either this is a bug or the files are corrupted. Aborting.")
+                return
             group_id = old_guild["key"]
             if old_guild["value"]["RawData"]["value"]["admin_player_uid"] == host_guid:
                 old_guild["value"]["RawData"]["value"]["admin_player_uid"] = targ_uid
@@ -648,7 +744,6 @@ of your save folder before continuing. Press Yes if you would like to continue.'
                     break
             targ_lvl["GroupSaveDataMap"]["value"].append(old_guild)
 
-
     for pal_param in param_maps:
         pal_data = pal_param['value']['RawData']['value']
         slot_id_idx = pal_data.find(b'\x07\x00\x00\x00SlotID\x00\x0f\x00\x00\x00StructProperty\x00')
@@ -656,10 +751,10 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             continue
         pal_container_id_bytes = pal_data[slot_id_idx + 217:slot_id_idx + 233]
         pal_data_bytearray = bytearray(pal_data)
-        if pal_container_id_bytes == host_inv_pals["value"]["ID"]["value"].raw_bytes:
-            pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_pals["value"]["ID"]["value"].raw_bytes
-        elif pal_container_id_bytes == host_inv_otomo["value"]["ID"]["value"].raw_bytes:
-            pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_otomo["value"]["ID"]["value"].raw_bytes
+        if pal_container_id_bytes == host_inv_pals["value"]["ID"]["value"]:
+            pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_pals["value"]["ID"]["value"]
+        elif pal_container_id_bytes == host_inv_otomo["value"]["ID"]["value"]:
+            pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_otomo["value"]["ID"]["value"]
         player_uid_start_idx = pal_data.find(OwnerPlayerUIdSearchPrefix) + len(OwnerPlayerUIdSearchPrefix)
 
         old_owner_players_start = pal_data[player_uid_start_idx:].find(OldOwnerPlayerUIdPrefix) + player_uid_start_idx
@@ -671,9 +766,9 @@ of your save folder before continuing. Press Yes if you would like to continue.'
         tmp_writer.curr_properties(old_owner_players)
         replace_bytes = tmp_writer.bytes()
 
-        pal_data_bytearray[player_uid_start_idx:player_uid_start_idx + 16] = targ_uid.raw_bytes
+        pal_data_bytearray[player_uid_start_idx:player_uid_start_idx + 16] = targ_uid
         pal_data_bytearray[old_owner_players_start:old_owner_players_end] = replace_bytes
-        pal_data_bytearray[-16:] = group_id.raw_bytes
+        pal_data_bytearray[-16:] = group_id
 
         pal_param['value']['RawData']['value'] = bytes(pal_data_bytearray)
         # print(UUID(pal_data[-16:]), UUID(pal_param['value']['RawData']['value'][-16:]))
@@ -765,21 +860,21 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     targ_lvl['DynamicItemSaveData']['value']['values'] += [container for i, (container, local_id) in
                                                            enumerate(level_additional_dynamic_containers) if
                                                            i not in repeated_indices]
+    print("Transferred all Dynamic containers, writing to output...")
 
     WORLDSAVESIZEPREFIX = b'\x0e\x00\x00\x00worldSaveData\x00\x0f\x00\x00\x00StructProperty\x00'
     size_idx = target_raw_gvas.find(WORLDSAVESIZEPREFIX) + len(WORLDSAVESIZEPREFIX)
-    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(copy.deepcopy(targ_lvl),
+    output_data = SkipFArchiveWriter(custom_properties=PALWORLD_CUSTOM_PROPERTIES).write_sections(targ_lvl,
                                                                                                   target_section_ranges,
                                                                                                   target_raw_gvas,
                                                                                                   size_idx)
 
-    gvas_to_sav(t_level_sav_path, output_data)
-    targ_json_gvas.properties = copy.deepcopy(targ_json)
+    targ_json_gvas.properties = targ_json
     t_host_sav_path = os.path.join(os.path.dirname(t_level_sav_path), 'Players', selected_target_player + '.sav')
-    gvas_to_sav(t_host_sav_path, targ_json_gvas.write())
 
-    host_json = host_json_cache
-    level_json = level_json_cache
+    print("Writing to file...")
+    gvas_to_sav(t_level_sav_path, output_data)
+    gvas_to_sav(t_host_sav_path, targ_json_gvas.write())
 
     print("Saved all data successfully. PLEASE DON'T BREAK")
     messagebox.showinfo(
@@ -830,7 +925,7 @@ def load_player_file(level_sav_path, player_uid):
     if not raw_gvas:
         messagebox.showerror(message=f"Invalid file {player_file_path}")
         return
-    return GvasFile.read(raw_gvas)
+    return SkipGvasFile.read(raw_gvas)
 
 
 def load_players(save_json, is_source):
@@ -848,12 +943,24 @@ def load_players(save_json, is_source):
         list_box.delete(item)
     for guild_id, player_items in players.items():
         for player_item in player_items:
-            playerUId = ''.join(str(player_item['player_uid']).split('-')).upper()
-            list_box.insert('', END, values=(guild_id, playerUId, player_item['player_info']['player_name']))
+            playerUId = ''.join(str(UUID(player_item['player_uid'])).split('-')).upper()
+            list_box.insert('', END, values=(UUID(guild_id), playerUId, player_item['player_info']['player_name']))
+
+
+def load_all_source_sections_async(group_save_section, reader):
+    global level_json
+    level_json, _ = reader.load_sections([
+        ('CharacterSaveParameterMap', MAP_START),
+        ('ItemContainerSaveData', MAP_START),
+        ('DynamicItemSaveData', ARRAY_START),
+        ('CharacterContainerSaveData', MAP_START)],
+        path='.worldSaveData'
+    )
+    level_json.update(group_save_section)
 
 
 def source_level_file():
-    global level_sav_path, source_level_path_label, level_json, selected_source_player
+    global level_sav_path, source_level_path_label, level_json, selected_source_player, source_section_load_handle
     tmp = select_file()
     if tmp:
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
@@ -863,23 +970,31 @@ def source_level_file():
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
-        level_json, _ = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES).load_sections([
-            ('CharacterSaveParameterMap', MAP_START),
-            ('ItemContainerSaveData', MAP_START),
-            ('DynamicItemSaveData', ARRAY_START),
-            ('CharacterContainerSaveData', MAP_START),
-            ('GroupSaveDataMap', MAP_START)],
-            path='.worldSaveData'
-        )
-        load_players(level_json, True)
+        reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
+        group_save_section = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
+        source_section_load_handle = threading.Thread(target=load_all_source_sections_async, args=(group_save_section, reader))
+        source_section_load_handle.start()
+        load_players(group_save_section, True)
         source_level_path_label.config(text=tmp)
         level_sav_path = tmp
         selected_source_player = None
         current_selection_label.config(text=f"source: {selected_source_player}, target: {selected_target_player}")
 
 
+def load_all_target_sections_async(group_save_section, reader):
+    global targ_lvl, target_section_ranges
+    targ_lvl, target_section_ranges = reader.load_sections([
+        ('CharacterSaveParameterMap', MAP_START),
+        ('ItemContainerSaveData', MAP_START),
+        ('DynamicItemSaveData', ARRAY_START),
+        ('CharacterContainerSaveData', MAP_START)],
+        path='.worldSaveData'
+    )
+    targ_lvl.update(group_save_section)
+
+
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player
+    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player, target_section_load_handle
     tmp = select_file()
     if tmp:
         if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
@@ -889,17 +1004,12 @@ def target_level_file():
         if not raw_gvas:
             messagebox.showerror(message="Invalid files, files must be .sav")
             return
-        reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
         target_raw_gvas = raw_gvas
-        targ_lvl, target_section_ranges = reader.load_sections([
-            ('CharacterSaveParameterMap', MAP_START),
-            ('ItemContainerSaveData', MAP_START),
-            ('DynamicItemSaveData', ARRAY_START),
-            ('CharacterContainerSaveData', MAP_START),
-            ('GroupSaveDataMap', MAP_START)],
-            path='.worldSaveData'
-        )
-        load_players(targ_lvl, False)
+        reader = SkipFArchiveReader(raw_gvas, PALWORLD_TYPE_HINTS, PALWORLD_CUSTOM_PROPERTIES)
+        group_save_section = reader.load_section('GroupSaveDataMap', MAP_START, reverse=True)
+        target_section_load_handle = threading.Thread(target=load_all_target_sections_async, args=(group_save_section, reader))
+        target_section_load_handle.start()
+        load_players(group_save_section, False)
         target_level_path_label.config(text=tmp)
         t_level_sav_path = tmp
         selected_target_player = None
@@ -937,6 +1047,7 @@ target_section_ranges, target_save_type, target_raw_gvas, targ_json_gvas = None,
 selected_source_player, selected_target_player = None, None
 keep_old_guild_id = False
 source_guild_dict, target_guild_dict = dict(), dict()
+source_section_load_handle, target_section_load_handle = None, None
 
 # main()
 root = Tk()
