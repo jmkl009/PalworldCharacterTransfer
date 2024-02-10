@@ -1,6 +1,6 @@
 
 **NEWS:**
-**The script is now compatible with base transfer methods. For those who don't know how to transfer the world with buildings over, simply**
+**The script is now compatible with base transfer methods. (This does not mean it no longer transfers single characters over, just that there is a way to use this alongside base transfer methods.) For those who don't know how to transfer the world with buildings over, simply**
 **1. Copy your Level.sav file from the old world to the new world.**
 **2. Each player creates a new character in the new world.**
 **3. Transfer each corresponding characters while keeping the old guild ID from the old world, check the "Keep Old Guild ID After Transfer" box at the bottom-left corner of the GUI.**
