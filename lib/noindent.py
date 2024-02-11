@@ -2,6 +2,7 @@ import ctypes
 import json
 import re
 import uuid
+from lib.archive import UUID
 
 
 class NoIndent(object):
@@ -28,7 +29,7 @@ class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, NoIndent):
             return self.FORMAT_SPEC.format(id(obj))
-        elif isinstance(obj, uuid.UUID):
+        elif isinstance(obj, uuid.UUID) or isinstance(obj, UUID):
             return str(obj)
         return super(CustomEncoder, self).default(obj)
 

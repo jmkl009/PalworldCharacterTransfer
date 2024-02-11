@@ -528,7 +528,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     if not found:
         print("Couldn't find character instance data to export")
-        messagebox.showerror(message="Couldn't find character instance data to export")
+        messagebox.showerror(message="Couldn't find source character instance data in the source world save")
         return
     print("Found Character Parameter Map")
     print(f"Read {palcount} pals from source save")
@@ -644,7 +644,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             break
     if not found:
         print("Couldn't find character paramater map, aborting")
-        messagebox.showerror(message="Couldn't find character paramater map, aborting")
+        messagebox.showerror(message="Couldn't find target character instance in target world save.")
         return
 
     print("Searching for target containers")
@@ -881,18 +881,30 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
 
 def sav_to_gvas(file):
+    file_open_start_time=time()
     with open(file, 'rb') as f:
+        file_open_end_time=time()
         data = f.read()
+        data_read_end_time=time()
         raw_gvas, save_type = decompress_sav_to_gvas(data)
+        data_decompressed_time=time()
+    print("file open time: ", file_open_end_time - file_open_start_time)
+    print("file read time: ", data_read_end_time - file_open_end_time)
+    print("file decompress time: ", data_decompressed_time - data_read_end_time)
     return raw_gvas, save_type
 
 
 def gvas_to_sav(file, gvas_data):
+    compress_start_time=time()
     sav_file_data = compress_gvas_to_sav(
         gvas_data, target_save_type
     )
+    compress_end_time = time()
     with open(file, 'wb') as out:
         out.write(sav_file_data)
+        file_write_end_time=time()
+    print("data compress time:", compress_end_time - compress_start_time)
+    print("file write time:", file_write_end_time - compress_end_time)
 
 
 def select_file():
