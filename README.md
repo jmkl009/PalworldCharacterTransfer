@@ -23,7 +23,7 @@
 
 ---
 
-### NEWS 🗞️
+### 🗞️ NEWS 
 
 #### New Base Transfer Feature
 
