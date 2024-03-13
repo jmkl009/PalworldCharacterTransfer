@@ -1,4 +1,5 @@
 import zlib
+# from isal import isal_zlib as zlib
 
 
 def decompress_sav_to_gvas(data: bytes) -> tuple[bytes, int]:
@@ -6,7 +7,14 @@ def decompress_sav_to_gvas(data: bytes) -> tuple[bytes, int]:
     compressed_len = int.from_bytes(data[4:8], byteorder="little")
     magic_bytes = data[8:11]
     save_type = data[11]
+    data_start_offset = 12
     # Check for magic bytes
+    if magic_bytes == b"CNK":
+        uncompressed_len = int.from_bytes(data[12:16], byteorder="little")
+        compressed_len = int.from_bytes(data[16:20], byteorder="little")
+        magic_bytes = data[20:23]
+        save_type = data[23]
+        data_start_offset = 24
     if magic_bytes != b"PlZ":
         raise Exception(
             f"not a compressed Palworld save, found {magic_bytes} instead of P1Z"
@@ -19,10 +27,10 @@ def decompress_sav_to_gvas(data: bytes) -> tuple[bytes, int]:
         raise Exception(f"unhandled compression type: {save_type}")
     if save_type == 0x31:
         # Check if the compressed length is correct
-        if compressed_len != len(data) - 12:
+        if compressed_len != len(data) - data_start_offset:
             raise Exception(f"incorrect compressed length: {compressed_len}")
     # Decompress file
-    uncompressed_data = zlib.decompress(data[12:])
+    uncompressed_data = zlib.decompress(data[data_start_offset:])
     if save_type == 0x32:
         # Check if the compressed length is correct
         if compressed_len != len(uncompressed_data):
