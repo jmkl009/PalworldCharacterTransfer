@@ -142,6 +142,9 @@ class SkipFArchiveReader(FArchiveReader):
             allow_nan=self.allow_nan,
         )
 
+    def skip(self, size: int) -> None:
+        self.data.seek(size, 1)
+
     def properties_until_end(self, path: str = "") -> dict[str, Any]:
         properties = {}
         while True:
@@ -870,6 +873,8 @@ def main():
 
     targ_json_gvas.properties = targ_json
     t_host_sav_path = os.path.join(os.path.dirname(t_level_sav_path), 'Players', selected_target_player + '.sav')
+    if not os.path.exists(t_host_sav_path):
+        t_host_sav_path = os.path.join(os.path.dirname(t_level_sav_path), '../Players', selected_target_player + '.sav')
 
     print("Writing to file...")
     gvas_to_sav(t_level_sav_path, output_data)
@@ -917,8 +922,10 @@ def load_file(path):
 def load_player_file(level_sav_path, player_uid):
     player_file_path = os.path.join(os.path.dirname(level_sav_path), 'Players', player_uid + '.sav')
     if not os.path.exists(player_file_path):
-        messagebox.showerror(message=f"玩家文件 {player_file_path} 不存在")
-        return None
+        player_file_path = os.path.join(os.path.dirname(level_sav_path), '../Players', player_uid + '.sav')
+        if not os.path.exists(player_file_path):
+            messagebox.showerror(message=f"玩家文件 {player_file_path} 不存在")
+            return None
     raw_gvas, _ = load_file(player_file_path)
     if not raw_gvas:
         messagebox.showerror(message=f"文件解析错误 {player_file_path}")
@@ -961,8 +968,8 @@ def source_level_file():
     global level_sav_path, source_level_path_label, level_json, selected_source_player, source_section_load_handle
     tmp = select_file()
     if tmp:
-        if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
-            messagebox.showerror("错误文件", "文件不正确. 请选择 Level.sav 文件.")
+        if not tmp.endswith('.sav'):
+            messagebox.showerror("错误文件", "文件不正确. 请选择 *.sav 文件.")
             return
         raw_gvas, _ = load_file(tmp)
         if not raw_gvas:
@@ -996,8 +1003,8 @@ def target_level_file():
     global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player, target_section_load_handle
     tmp = select_file()
     if tmp:
-        if not tmp.endswith('Level.sav') and not tmp.endswith('Level.sav.json'):
-            messagebox.showerror("错误文件", "文件不正确. 请选择 Level.sav 文件.")
+        if not tmp.endswith('.sav'):
+            messagebox.showerror("错误文件", "文件不正确. 请选择 *.sav 文件.")
             return
         raw_gvas, target_save_type = load_file(tmp)
         if not raw_gvas:
