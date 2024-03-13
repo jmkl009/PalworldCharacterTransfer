@@ -887,13 +887,13 @@ def main():
 def sav_to_gvas(file):
     with open(file, 'rb') as f:
         data = f.read()
-        raw_gvas, save_type = decompress_sav_to_gvas(data)
-    return raw_gvas, save_type
+        raw_gvas, save_type, cnk_header = decompress_sav_to_gvas(data)
+    return raw_gvas, save_type, cnk_header
 
 
 def gvas_to_sav(file, gvas_data):
     sav_file_data = compress_gvas_to_sav(
-        gvas_data, target_save_type
+        gvas_data, target_save_type, cnk_header=None if output_old_save_version else TARGET_CNK_DATA_HEADER
     )
     with open(file, 'wb') as out:
         out.write(sav_file_data)
@@ -913,10 +913,12 @@ def ishex(s):
 
 def load_file(path):
     global status_label, root
-    loaded_file, save_type = None, None
+    loaded_file, save_type, cnk_header = None, None, None
     if path.endswith(".sav"):
-        loaded_file, save_type = sav_to_gvas(path)
-    return loaded_file, save_type
+        loaded_file, save_type, cnk_header = sav_to_gvas(path)
+        if cnk_header[8:11] == b"PlZ":
+            cnk_header = None
+    return loaded_file, save_type, cnk_header
 
 
 def load_player_file(level_sav_path, player_uid):
@@ -926,7 +928,7 @@ def load_player_file(level_sav_path, player_uid):
         if not os.path.exists(player_file_path):
             messagebox.showerror(message=f"玩家文件 {player_file_path} 不存在")
             return None
-    raw_gvas, _ = load_file(player_file_path)
+    raw_gvas, _, _ = load_file(player_file_path)
     if not raw_gvas:
         messagebox.showerror(message=f"文件解析错误 {player_file_path}")
         return
@@ -971,7 +973,7 @@ def source_level_file():
         if not tmp.endswith('.sav'):
             messagebox.showerror("错误文件", "文件不正确. 请选择 *.sav 文件.")
             return
-        raw_gvas, _ = load_file(tmp)
+        raw_gvas, _, _ = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="文件不正确, 文件需要以 .sav结尾")
             return
@@ -1000,13 +1002,13 @@ def load_all_target_sections_async(group_save_section, group_save_section_range,
 
 
 def target_level_file():
-    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player, target_section_load_handle
+    global t_level_sav_path, target_level_path_label, targ_lvl, target_level_cache, target_section_ranges, target_raw_gvas, target_save_type, selected_target_player, target_section_load_handle, TARGET_CNK_DATA_HEADER
     tmp = select_file()
     if tmp:
         if not tmp.endswith('.sav'):
             messagebox.showerror("错误文件", "文件不正确. 请选择 *.sav 文件.")
             return
-        raw_gvas, target_save_type = load_file(tmp)
+        raw_gvas, target_save_type, TARGET_CNK_DATA_HEADER = load_file(tmp)
         if not raw_gvas:
             messagebox.showerror(message="文件不正确, 文件需要以 .sav结尾")
             return
@@ -1047,11 +1049,17 @@ def on_keep_old_guild_check():
     keep_old_guild_id = bool(checkbox_var.get())
     print("Keep old guild id after transfer:", "on" if keep_old_guild_id else "off")
 
+def on_output_old_save_version_check():
+    global output_old_save_version
+    output_old_save_version = bool(save_version_var.get())
+    print("Output Old Save Version:", "on" if output_old_save_version else "off")
+
 level_sav_path, host_sav_path, t_level_sav_path, t_host_sav_path = None, None, None, None
 level_json, host_json, targ_lvl, targ_json = None, None, None, None
 target_section_ranges, target_save_type, target_raw_gvas, targ_json_gvas = None, None, None, None
 selected_source_player, selected_target_player = None, None
-keep_old_guild_id = False
+keep_old_guild_id, output_old_save_version = False, False
+TARGET_CNK_DATA_HEADER = None
 source_guild_dict, target_guild_dict = dict(), dict()
 source_section_load_handle, target_section_load_handle = None, None
 
@@ -1126,6 +1134,10 @@ Button(
 checkbox_var = IntVar()
 keep_old_guild_check = Checkbutton(root, text="在迁移后依旧保有旧公会ID", variable=checkbox_var, command=on_keep_old_guild_check)
 keep_old_guild_check.grid(row=7, column=0, columnspan=2, sticky='w', padx=10, pady=5)
+
+save_version_var = IntVar()
+keep_old_guild_check = Checkbutton(root, text="输出旧版本存档", variable=save_version_var, command=on_output_old_save_version_check)
+keep_old_guild_check.grid(row=7, column=1, columnspan=2, sticky='w', padx=10, pady=5)
 
 
 # Register the exit function
