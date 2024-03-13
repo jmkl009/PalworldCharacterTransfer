@@ -41,10 +41,10 @@ def decompress_sav_to_gvas(data: bytes) -> tuple[bytes, int]:
     if uncompressed_len != len(uncompressed_data):
         raise Exception(f"incorrect uncompressed length: {uncompressed_len}")
 
-    return uncompressed_data, save_type
+    return uncompressed_data, save_type, data[:12]
 
 
-def compress_gvas_to_sav(data: bytes, save_type: int) -> bytes:
+def compress_gvas_to_sav(data: bytes, save_type: int, cnk_header=None) -> bytes:
     uncompressed_len = len(data)
     compressed_data = zlib.compress(data)
     compressed_len = len(compressed_data)
@@ -53,6 +53,8 @@ def compress_gvas_to_sav(data: bytes, save_type: int) -> bytes:
 
     # Create a byte array and append the necessary information
     result = bytearray()
+    if cnk_header:
+        result.extend(cnk_header)
     result.extend(uncompressed_len.to_bytes(4, byteorder="little"))
     result.extend(compressed_len.to_bytes(4, byteorder="little"))
     result.extend(b"PlZ")
