@@ -759,17 +759,17 @@ of your save folder before continuing. Press Yes if you would like to continue.'
             pal_data_bytearray[slot_id_idx + 217:slot_id_idx + 233] = inv_otomo["value"]["ID"]["value"]
         player_uid_start_idx = pal_data.find(OwnerPlayerUIdSearchPrefix) + len(OwnerPlayerUIdSearchPrefix)
 
-        old_owner_players_start = pal_data[player_uid_start_idx:].find(OldOwnerPlayerUIdPrefix) + player_uid_start_idx
-        old_owner_players_end = pal_data[old_owner_players_start:].find(
-            OldOwnerPlayerUIdSuffix) + old_owner_players_start
-        old_owner_players = SkipFArchiveReader(pal_data[old_owner_players_start:old_owner_players_end]).curr_property()
-        old_owner_players['OldOwnerPlayerUIds']['value']['values'][-1] = targ_uid
-        tmp_writer = SkipFArchiveWriter()
-        tmp_writer.curr_properties(old_owner_players)
-        replace_bytes = tmp_writer.bytes()
+        # old_owner_players_start = pal_data[player_uid_start_idx:].find(OldOwnerPlayerUIdPrefix) + player_uid_start_idx
+        # old_owner_players_end = pal_data[old_owner_players_start:].find(
+        #     OldOwnerPlayerUIdSuffix) + old_owner_players_start
+        # old_owner_players = SkipFArchiveReader(pal_data[old_owner_players_start:old_owner_players_end]).curr_property()
+        # old_owner_players['OldOwnerPlayerUIds']['value']['values'][-1] = targ_uid
+        # tmp_writer = SkipFArchiveWriter()
+        # tmp_writer.curr_properties(old_owner_players)
+        # replace_bytes = tmp_writer.bytes()
 
         pal_data_bytearray[player_uid_start_idx:player_uid_start_idx + 16] = targ_uid
-        pal_data_bytearray[old_owner_players_start:old_owner_players_end] = replace_bytes
+        # pal_data_bytearray[old_owner_players_start:old_owner_players_end] = replace_bytes
         pal_data_bytearray[-16:] = group_id
 
         pal_param['value']['RawData']['value'] = bytes(pal_data_bytearray)
