@@ -537,7 +537,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
     print(f"Read {palcount} pals from source save")
 
     print("Searching for container data")
-    inv_info = host_json["SaveData"]["value"]["inventoryInfo"]["value"]
+    inv_info = host_json["SaveData"]["value"]["InventoryInfo"]["value"]
     inv_main = inv_info["CommonContainerId"]
     inv_key = inv_info["EssentialContainerId"]
     inv_weps = inv_info["WeaponLoadOutContainerId"]
@@ -652,7 +652,7 @@ of your save folder before continuing. Press Yes if you would like to continue.'
 
     print("Searching for target containers")
 
-    inv_info = targ_json["SaveData"]["value"]["inventoryInfo"]["value"]
+    inv_info = targ_json["SaveData"]["value"]["InventoryInfo"]["value"]
     inv_main = inv_info["CommonContainerId"]
     inv_key = inv_info["EssentialContainerId"]
     inv_weps = inv_info["WeaponLoadOutContainerId"]
