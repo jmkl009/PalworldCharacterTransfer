@@ -537,7 +537,8 @@ def main():
     print(f"Read {palcount} pals from source save")
 
     print("Searching for container data")
-    inv_info = host_json["SaveData"]["value"]["inventoryInfo"]["value"]
+    host_save = host_json["SaveData"]["value"]
+    inv_info = host_save["InventoryInfo"]["value"] if "InventoryInfo" in host_save else host_save["inventoryInfo"]["value"]
     inv_main = inv_info["CommonContainerId"]
     inv_key = inv_info["EssentialContainerId"]
     inv_weps = inv_info["WeaponLoadOutContainerId"]
@@ -652,7 +653,8 @@ def main():
 
     print("Searching for target containers")
 
-    inv_info = targ_json["SaveData"]["value"]["inventoryInfo"]["value"]
+    targ_save = targ_json["SaveData"]["value"]
+    inv_info = targ_save["InventoryInfo"]["value"] if "InventoryInfo" in targ_save else targ_save["inventoryInfo"]["value"]
     inv_main = inv_info["CommonContainerId"]
     inv_key = inv_info["EssentialContainerId"]
     inv_weps = inv_info["WeaponLoadOutContainerId"]
