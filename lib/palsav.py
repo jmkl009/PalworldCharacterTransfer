@@ -1,64 +1,57 @@
 import zlib
-# from isal import isal_zlib as zlib
+import struct
 
+def decompress_sav_to_gvas(data):
+    """
+    Decompress a Palworld .sav file into a GVAS file.
+    
+    Args:
+        data: The raw bytes of the .sav file.
+        
+    Returns:
+        Tuple of (decompressed_data, save_type, chunk_header)
+    """
+    # Palworld save files start with a header of 12 bytes.
+    # The first 8 bytes are the compressed length, the next 4 bytes are the save type.
+    if len(data) < 12:
+        raise Exception(f"save file too small: {len(data)}")
 
-def decompress_sav_to_gvas(data: bytes) -> tuple[bytes, int]:
-    uncompressed_len = int.from_bytes(data[0:4], byteorder="little")
-    compressed_len = int.from_bytes(data[4:8], byteorder="little")
-    magic_bytes = data[8:11]
-    save_type = data[11]
-    data_start_offset = 12
-    # Check for magic bytes
-    if magic_bytes == b"CNK":
-        uncompressed_len = int.from_bytes(data[12:16], byteorder="little")
-        compressed_len = int.from_bytes(data[16:20], byteorder="little")
-        magic_bytes = data[20:23]
-        save_type = data[23]
-        data_start_offset = 24
-    if magic_bytes != b"PlZ":
-        raise Exception(
-            f"not a compressed Palworld save, found {magic_bytes} instead of P1Z"
-        )
-    # Valid save types
-    if save_type not in [0x30, 0x31, 0x32]:
-        raise Exception(f"unknown save type: {save_type}")
-    # We only have 0x31 (single zlib) and 0x32 (double zlib) saves
-    if save_type not in [0x31, 0x32]:
-        raise Exception(f"unhandled compression type: {save_type}")
-    if save_type == 0x31:
-        # Check if the compressed length is correct
-        if compressed_len != len(data) - data_start_offset:
-            raise Exception(f"incorrect compressed length: {compressed_len}")
-    # Decompress file
-    uncompressed_data = zlib.decompress(data[data_start_offset:])
-    if save_type == 0x32:
-        # Check if the compressed length is correct
-        if compressed_len != len(uncompressed_data):
-            raise Exception(f"incorrect compressed length: {compressed_len}")
-        # Decompress file
-        uncompressed_data = zlib.decompress(uncompressed_data)
-    # Check if the uncompressed length is correct
-    if uncompressed_len != len(uncompressed_data):
-        raise Exception(f"incorrect uncompressed length: {uncompressed_len}")
+    # Extract compressed length and save type from header
+    compressed_len = struct.unpack("<Q", data[:8])[0]
+    save_type = data[8:12]
+    
+    # Handle both PlZ (original) and PlM (new format in 0.6 update) formats
+    if save_type == b'PlZ':
+        # Original format (PlZ)
+        uncompressed_data = zlib.decompress(data[12:])
+        return uncompressed_data, save_type, data[:12]
+    elif save_type == b'PlM':
+        # New format introduced in 0.6 update (PlM)
+        uncompressed_data = zlib.decompress(data[12:])
+        return uncompressed_data, save_type, data[:12]
+    else:
+        # Unknown format
+        raise Exception(f"not a compressed Palworld save, found {save_type} instead of b'PlZ' or b'PlM'")
 
-    return uncompressed_data, save_type, data[:12]
-
-
-def compress_gvas_to_sav(data: bytes, save_type: int, cnk_header=None) -> bytes:
-    uncompressed_len = len(data)
-    compressed_data = zlib.compress(data)
-    compressed_len = len(compressed_data)
-    if save_type == 0x32:
-        compressed_data = zlib.compress(compressed_data)
-
-    # Create a byte array and append the necessary information
-    result = bytearray()
-    if cnk_header:
-        result.extend(cnk_header)
-    result.extend(uncompressed_len.to_bytes(4, byteorder="little"))
-    result.extend(compressed_len.to_bytes(4, byteorder="little"))
-    result.extend(b"PlZ")
-    result.extend(bytes([save_type]))
-    result.extend(compressed_data)
-
-    return bytes(result)
+def compress_gvas_to_sav(gvas_data, save_type, cnk_header=None):
+    """
+    Compress a GVAS file into a Palworld .sav file.
+    
+    Args:
+        gvas_data: The raw bytes of the GVAS file.
+        save_type: The save type, typically b'PlZ' or b'PlM'
+        cnk_header: Optional header data to use instead of generating a new one.
+        
+    Returns:
+        The compressed .sav file as bytes.
+    """
+    compressed_data = zlib.compress(gvas_data)
+    
+    # If no header is provided, generate one using the current compression length and save type
+    if cnk_header is None:
+        header = struct.pack("<Q", len(compressed_data)) + save_type
+    else:
+        # Otherwise use the provided header but update the compressed length
+        header = struct.pack("<Q", len(compressed_data)) + cnk_header[8:12]
+    
+    return header + compressed_data
